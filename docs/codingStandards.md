@@ -11,6 +11,7 @@ Este documento establece las normas obligatorias de desarrollo y organización d
 * **Archivos y Variables Generales:** Nombres en `snake_case` (ej. `user_data`, `product_card_img.jpg`).
 
 ---
+## 1.1 Conventional commits y branches
 
 ## 2. Estructura de Proyecto y Carpeteo
 
