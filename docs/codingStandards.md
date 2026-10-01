@@ -14,9 +14,36 @@ Este documento establece las normas obligatorias de desarrollo y organización d
 ---
 
 ## 2. Estructura de Proyecto y Carpeteo
-
-
-
+```text
+content-enricher/
+├── .github/
+│   └── workflows/
+│       └── ci.yml               # Pipeline de integración continua (CI)
+├── logs/
+│   └── .gitkeep                 # Carpeta reservada para archivos de log
+├── output/
+│   └── .gitkeep                 # Carpeta de salida para documentos PDF/TXT
+├── src/
+│   ├── __init__.py
+│   ├── logger_config.py         # Configuración del sistema de trazabilidad/logs
+│   ├── scraper.py               # Extracción web con BeautifulSoup y Requests
+│   ├── enricher.py              # Integración con OpenAI GPT (Enriquecimiento y Resumen)
+│   ├── translator.py            # Traducción multi-idioma con Deep Translator
+│   ├── exporter.py              # Estrategias de exportación (ReportLab PDF y TXT)
+│   └── main.py                  # Orquestador principal e interfaz de usuario (CLI)
+├── tests/
+│   ├── __init__.py
+│   ├── features/
+│   │   └── enricher.feature     # Casos de prueba en sintaxis Gherkin (BDD)
+│   ├── test_scraper.py          # Pruebas unitarias e integración del módulo Scraper
+│   ├── test_enricher.py         # Pruebas unitarias del módulo AI Enricher
+│   ├── test_translator.py       # Pruebas unitarias del módulo Translator
+│   └── test_exporter.py         # Pruebas unitarias del módulo Exporter
+├── .gitignore                   # Exclusión de archivos temporales y credenciales
+├── pytest.ini                   # Configuración global para Pytest y Pytest-BDD
+├── requirements.txt             # Dependencias del proyecto
+└── README.md                    # Documentación principal del proyecto
+```
 ---
 
 ## 3. Código Limpio y Sin Comentarios (Clean Code)
