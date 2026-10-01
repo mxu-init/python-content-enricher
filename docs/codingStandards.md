@@ -9,32 +9,13 @@ Este documento establece las normas obligatorias de desarrollo y organización d
 * **Idioma de Código:** Todo el código fuente (variables, funciones, clases, nombres de archivos, carpetas y commits) debe estar escrito en **inglés**.
 * **Idioma de Interfaz (UI):** Todo el contenido visible para el usuario final debe estar obligatoriamente en **español**.
 * **Archivos y Variables Generales:** Nombres en `snake_case` (ej. `user_data`, `product_card_img.jpg`).
+* **Conventional commits y branches:**
 
 ---
-## 1.1 Conventional commits y branches
 
 ## 2. Estructura de Proyecto y Carpeteo
 
-La arquitectura del proyecto sigue un enfoque modular basado en componentes, páginas y servicios.
 
-```text
-src/
-├── assets/             # Imágenes y recursos estáticos locales
-├── components/         # Componentes reutilizables de UI (Carpetas en PascalCase)
-│   └── Header/
-│       ├── Header.jsx
-│       └── Header.css
-├── pages/              # Páginas o vistas principales (Carpetas en minúsculas)
-│   └── products/
-│       ├── Products.jsx
-│       └── Products.css
-├── services/           # Capa de API y peticiones HTTP centralizadas
-│   ├── api.js          # Instancia base de Axios e interceptores
-│   └── productService.js
-├── index.css           # Estilos globales de la aplicación
-└── main.jsx            # Punto de entrada de la aplicación
-
-```
 
 ---
 
