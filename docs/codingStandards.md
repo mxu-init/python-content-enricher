@@ -65,17 +65,17 @@ content-enricher/
 
 El stack oficial del proyecto está fijado. No se deben añadir librerías adicionales para resolver tareas cubiertas por el stack base sin la aprobación previa del equipo.
 
-* **Lenguaje:** JavaScript (ES6+).
-* **Entorno / Bundler:** Vite.
-* **Consumo de APIs:** Axios.
-* **Linter y Calidad:** ESLint (debe ejecutarse sin errores antes de cada subida a producción o PR).
-* **Enrutado (`react-router-dom`):**
-* Las rutas definidas en el atributo `path` deben seguir estrictamente la convención estándar en **`kebab-case`** (letras minúsculas separadas por guiones).
-* *Ejemplos:*
-* `<Route element="{<UserProfile" path="/user-profile"/>} />`
-* `<Route element="{<ProductDetails" path="/product-details/:id"/>} />`
+Lenguaje: Python 3.10+
 
+Scraping: BeautifulSoup4, Requests
 
+Inteligencia Artificial: OpenAI (ChatGPT API)
+
+Traducción: deep-translator
+
+Generación de PDF: reportlab
+
+Testing & BDD: pytest, pytest-cov, pytest-bdd
 ---
 
 ## 6. Buenas Prácticas
