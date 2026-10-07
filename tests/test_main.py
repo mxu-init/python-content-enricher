@@ -6,7 +6,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from src.main import CliInput
 
 scenarios("features/main.feature")
-
+pytestmark = pytest.mark.usefixtures("capsys")
 
 @pytest.fixture
 def typed_answers():
