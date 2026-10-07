@@ -27,7 +27,7 @@ class ArticleParser:
         return soup.find(id="firstHeading").get_text(strip=True)
 
     def _extract_paragraphs(self, soup: BeautifulSoup) -> list[str]:
-        paragraph_tags = soup.select("#mw-content-text .mw-parser-output > p")
+        paragraph_tags = soup.select("#mw-content-text .mw-parser-output p")
         texts = [self._clean_paragraph(tag) for tag in paragraph_tags]
         non_empty_texts = [text for text in texts if text]
         return non_empty_texts[:PARAGRAPH_LIMIT]
