@@ -36,3 +36,22 @@ class ArticleParser:
         for citation in paragraph_tag.select("sup"):
             citation.decompose()
         return " ".join(paragraph_tag.get_text().split())
+
+
+class WikipediaScraper:
+    def __init__(self) -> None:
+        self._parser = ArticleParser()
+
+    def search(self, topic: str) -> WikipediaArticle:
+        html = self._fetch_html(topic)
+        return self._parser.parse(html)
+
+    def _fetch_html(self, topic: str) -> str:
+        response = requests.get(
+            WIKIPEDIA_SEARCH_URL,
+            params={"search": topic},
+            headers=REQUEST_HEADERS,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        return response.text
