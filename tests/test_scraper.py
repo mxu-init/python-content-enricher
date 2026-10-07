@@ -82,3 +82,15 @@ def search_topic(topic):
 @then(parsers.parse('Wikipedia was queried with the topic "{topic}"'))
 def check_wikipedia_query(mocked_get, topic):
     assert mocked_get.call_args.kwargs["params"] == {"search": topic}
+
+@given(
+    "a Wikipedia page with its paragraphs wrapped in sections",
+    target_fixture="html",
+)
+def page_with_sections():
+    return (
+        '<html><body><h1 id="firstHeading">Python</h1>'
+        '<div id="mw-content-text"><div class="mw-parser-output">'
+        "<section><p>First paragraph.</p><p>Second paragraph.</p></section>"
+        "</div></div></body></html>"
+    )
