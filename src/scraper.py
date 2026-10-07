@@ -31,4 +31,14 @@ class WikipediaScraper:
                 
             return {"title": title, "paragraphs": paragraphs}
 
-        
+        except requests.exceptions.ConnectionError:
+            print("[Error de Red]: No se pudo conectar con Wikipedia. Verifique su conexión a internet.")
+            return None
+            
+        except requests.exceptions.Timeout:
+            print("[Error de Red]: La solicitud a Wikipedia ha expirado (Timeout). Intente nuevamente.")
+            return None
+            
+        except Exception as e:
+            print(f"[Error Inesperado]: Ocurrió un fallo en el sistema -> {str(e)}")
+            return None
