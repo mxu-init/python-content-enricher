@@ -29,3 +29,8 @@ Feature: Wikipedia article parsing
     When the user searches for "Python"
     Then the article title is "Python"
     And Wikipedia was queried with the topic "Python"
+
+  Scenario: Read paragraphs wrapped in sections
+    Given a Wikipedia page with its paragraphs wrapped in sections
+    When the page is parsed
+    Then the article has 2 paragraphs
