@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
+import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from src.scraper import ArticleParser
+from src.scraper import ArticleParser, WikipediaScraper
 
 scenarios("features/scraper.feature")
 
