@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 
+import requests
 from bs4 import BeautifulSoup
 
+WIKIPEDIA_SEARCH_URL = "https://es.wikipedia.org/w/index.php"
+REQUEST_HEADERS = {"User-Agent": "ContentEnricher/1.0 (course project)"}
+REQUEST_TIMEOUT_SECONDS = 10
 PARAGRAPH_LIMIT = 5
 
 
