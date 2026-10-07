@@ -62,3 +62,23 @@ def check_paragraph_count(article, expected_count):
 @then(parsers.parse('the first paragraph is "{expected_text}"'))
 def check_first_paragraph(article, expected_text):
     assert article.paragraphs[0] == expected_text
+
+@pytest.fixture
+def mocked_get():
+    with patch("src.scraper.requests.get") as mocked:
+        yield mocked
+
+
+@given(parsers.parse('Wikipedia answers with a page titled "{title}"'))
+def wikipedia_answers(mocked_get, title):
+    mocked_get.return_value.text = build_wikipedia_html(title, ["Some content."])
+
+
+@when(parsers.parse('the user searches for "{topic}"'), target_fixture="article")
+def search_topic(topic):
+    return WikipediaScraper().search(topic)
+
+
+@then(parsers.parse('Wikipedia was queried with the topic "{topic}"'))
+def check_wikipedia_query(mocked_get, topic):
+    assert mocked_get.call_args.kwargs["params"] == {"search": topic}
