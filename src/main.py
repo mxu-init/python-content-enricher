@@ -63,5 +63,5 @@ class ContentEnricherApp:
         self._cli_output.show_article(article)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     ContentEnricherApp().run()
