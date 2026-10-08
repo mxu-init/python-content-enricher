@@ -11,7 +11,6 @@ class WikipediaScraper:
         self.logger = logger
 
     def fetch_article(self, topic: str) -> Dict[str, str]:
-        #Busca un tema en Wikipedia y extrae el título y los primeros 5 párrafos.
         formatted_topic = topic.strip().replace(" ", "_")
         url = f"{self.BASE_URL}{formatted_topic}"
         self.logger.info(f"Iniciando scraping en URL: {url}")
