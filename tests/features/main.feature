@@ -38,3 +38,19 @@ Feature: Consult a topic from the terminal
     When the request is asked
     Then the screen shows "Responde con 's' o 'n'."
     And the request does not want a summary
+
+
+  Scenario: Show the article on screen
+    Given an article titled "Python" with the paragraphs "First paragraph." and "Second paragraph."
+    When the article is shown
+    Then the screen shows "Python"
+    And the screen shows "Second paragraph."
+
+  Scenario: Consult a topic from the terminal
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "n"
+    And Wikipedia answers with the article "Python"
+    When the application runs
+    Then Wikipedia was searched for "Python"
+    And the screen shows "Python"
