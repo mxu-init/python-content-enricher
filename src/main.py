@@ -42,3 +42,26 @@ class CliInput:
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
+
+class CliOutput:
+    def show_article(self, article: WikipediaArticle) -> None:
+        print(f"\n{article.title}\n")
+        for paragraph in article.paragraphs:
+            print(paragraph)
+            print()
+
+
+class ContentEnricherApp:
+    def __init__(self) -> None:
+        self._cli_input = CliInput()
+        self._cli_output = CliOutput()
+        self._scraper = WikipediaScraper()
+
+    def run(self) -> None:
+        request = self._cli_input.ask_request()
+        article = self._scraper.search(request.topic)
+        self._cli_output.show_article(article)
+
+
+if __name__ == "__main__":
+    ContentEnricherApp().run()
