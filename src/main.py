@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.scraper import WikipediaArticle, WikipediaScraper
+from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
