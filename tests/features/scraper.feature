@@ -23,3 +23,14 @@ Feature: Wikipedia article parsing
     Given a Wikipedia page with a paragraph containing a citation marker
     When the page is parsed
     Then the first paragraph is "Python is a language."
+
+  Scenario: Search a topic on Wikipedia
+    Given Wikipedia answers with a page titled "Python"
+    When the user searches for "Python"
+    Then the article title is "Python"
+    And Wikipedia was queried with the topic "Python"
+
+  Scenario: Read paragraphs wrapped in sections
+    Given a Wikipedia page with its paragraphs wrapped in sections
+    When the page is parsed
+    Then the article has 2 paragraphs
