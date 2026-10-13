@@ -1,4 +1,5 @@
 import ssl
+import httpx
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -103,6 +104,19 @@ def test_setup_logger_idempotent():
     assert len(second.handlers) == handler_count
 
 
+def test_ipv4_only_getaddrinfo_filters_ipv6():
+    import socket
+    from src.enricher import _ipv4_only_getaddrinfo
+
+    ipv4_entry = (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 80))
+    ipv6_entry = (socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("2606:2800:220:1::", 80, 0, 0))
+
+    with patch("src.enricher._original_getaddrinfo", return_value=[ipv4_entry, ipv6_entry]):
+        results = _ipv4_only_getaddrinfo("example.com", 80)
+
+    assert results == [ipv4_entry]
+
+
 def test_build_client_returns_none_when_no_key():
     enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
     enricher.logger = MagicMock()
@@ -113,14 +127,17 @@ def test_build_client_returns_none_when_no_key():
 
 
 def test_build_client_creates_genai_client_when_key_present():
-    with patch("src.enricher.genai.Client") as mock_client_class:
-        mock_client_class.return_value = MagicMock()
-        enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
-        enricher.logger = MagicMock()
-        enricher._api_key = "fake-key"
-        result = enricher._build_client()
-        assert result is mock_client_class.return_value
-        mock_client_class.assert_called_once()
+    with patch("src.enricher.genai.Client") as mock_genai_class:
+        mock_genai_class.return_value = MagicMock()
+        real_http_client = httpx.Client()
+        with patch("src.enricher.httpx.Client", return_value=real_http_client):
+            enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+            enricher.logger = MagicMock()
+            enricher._api_key = "fake-key"
+            result = enricher._build_client()
+        real_http_client.close()
+    assert result is mock_genai_class.return_value
+    mock_genai_class.assert_called_once()
 
 
 def test_build_prompt_contains_title_and_text():
@@ -226,6 +243,24 @@ def test_timeout_error_is_retried():
     assert mock_client.models.generate_content.call_count == 2
 
 
+def test_httpx_read_timeout_is_retried():
+    mock_response = MagicMock()
+    mock_response.text = "ok after httpx retry"
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = [
+        httpx.ReadTimeout("read timed out"),
+        mock_response,
+    ]
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    with patch("src.enricher.time.sleep"):
+        result = enricher._request_enrichment("prompt")
+    assert result == "ok after httpx retry"
+    assert mock_client.models.generate_content.call_count == 2
+
+
 def test_init_with_no_key_sets_client_to_none():
     with patch("src.enricher.load_dotenv"), patch("src.enricher.os.getenv", return_value=None):
         enricher = GeminiContentEnricher()
@@ -235,10 +270,13 @@ def test_init_with_no_key_sets_client_to_none():
 
 def test_init_with_key_creates_client():
     mock_client_instance = MagicMock()
+    real_http_client = httpx.Client()
     with (
         patch("src.enricher.load_dotenv"),
         patch("src.enricher.os.getenv", return_value="fake-key"),
+        patch("src.enricher.httpx.Client", return_value=real_http_client),
         patch("src.enricher.genai.Client", return_value=mock_client_instance),
     ):
         enricher = GeminiContentEnricher()
+    real_http_client.close()
     assert enricher._client is mock_client_instance

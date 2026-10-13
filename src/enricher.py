@@ -1,21 +1,34 @@
 import logging
 import os
+import socket
 import ssl
 import time
 from typing import Optional
 
+_original_getaddrinfo = socket.getaddrinfo
+
+
+def _ipv4_only_getaddrinfo(*args, **kwargs):
+    results = _original_getaddrinfo(*args, **kwargs)
+    return [res for res in results if res[0] == socket.AF_INET]
+
+
+socket.getaddrinfo = _ipv4_only_getaddrinfo
+
+import httpx
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-GEMINI_MODEL = "gemini-2.5-flash"
-REQUEST_TIMEOUT_SECONDS = 60
+GEMINI_MODEL = "gemini-2.0-flash"
+HTTP_CONNECT_TIMEOUT = 10.0
+HTTP_READ_TIMEOUT = 90.0
 MAX_RETRIES = 3
 RETRY_BASE_DELAY_SECONDS = 2
 ENRICHMENT_FALLBACK = "[Enriquecimiento no disponible: error al contactar con la IA.]"
 MISSING_KEY_FALLBACK = "[Enriquecimiento no disponible: falta la clave GEMINI_API_KEY.]"
 
-_RETRYABLE_ERRORS = (ssl.SSLError, TimeoutError, ConnectionError, OSError)
+_RETRYABLE_ERRORS = (ssl.SSLError, TimeoutError, ConnectionError, OSError, httpx.TimeoutException)
 
 
 def setup_logger() -> logging.Logger:
@@ -41,9 +54,22 @@ class GeminiContentEnricher:
         if not self._api_key:
             self.logger.warning("GEMINI_API_KEY no encontrada. El enriquecimiento estara desactivado.")
             return None
+        http_client = httpx.Client(
+            timeout=httpx.Timeout(
+                HTTP_READ_TIMEOUT,
+                connect=HTTP_CONNECT_TIMEOUT,
+            ),
+        )
         return genai.Client(
             api_key=self._api_key,
-            http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_SECONDS),
+            http_options=types.HttpOptions(
+                httpx_client=http_client,
+                retry_options=types.HttpRetryOptions(
+                    attempts=MAX_RETRIES,
+                    initial_delay=RETRY_BASE_DELAY_SECONDS,
+                    max_delay=30.0,
+                ),
+            ),
         )
 
     def enrich_content(self, title: str, original_text: str) -> str:
