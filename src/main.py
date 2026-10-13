@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+import logging
+
+from src.enricher import GeminiContentEnricher
 from src.scraper import WikipediaArticle, WikipediaScraper
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
@@ -53,14 +56,20 @@ class CliOutput:
 
 class ContentEnricherApp:
     def __init__(self) -> None:
+        self._logger = logging.getLogger("content_enricher_app")
         self._cli_input = CliInput()
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
+        self._enricher = GeminiContentEnricher(self._logger)
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
         article = self._scraper.search(request.topic)
         self._cli_output.show_article(article)
+        original_text = "\n".join(article.paragraphs)
+        enriched_text = self._enricher.enrich_content(article.title, original_text)
+        print("\n--- Contenido Enriquecido por IA ---\n")
+        print(enriched_text)
 
 
 if __name__ == "__main__": # pragma: no cover
