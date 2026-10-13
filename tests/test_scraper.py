@@ -1,9 +1,10 @@
 from unittest.mock import patch
 
 import pytest
+import requests
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from src.scraper import ArticleParser, WikipediaScraper
+from src.scraper import ArticleParser, ScraperError, WikipediaScraper
 
 scenarios("features/scraper.feature")
 
@@ -94,3 +95,46 @@ def page_with_sections():
         "<section><p>First paragraph.</p><p>Second paragraph.</p></section>"
         "</div></div></body></html>"
     )
+
+
+@given("Wikipedia answers with a search results page")
+def wikipedia_answers_search_results(mocked_get):
+    mocked_get.return_value.url = (
+        "https://es.wikipedia.org/w/index.php?search=zzz&title=Especial:Buscar"
+    )
+
+
+@given(parsers.parse("Wikipedia answers with the status {status_code:d}"))
+def wikipedia_answers_with_status(mocked_get, status_code):
+    mocked_get.return_value.status_code = status_code
+    mocked_get.return_value.ok = status_code < 400
+
+
+@given("the connection to Wikipedia fails")
+def connection_fails(mocked_get):
+    mocked_get.side_effect = requests.exceptions.ConnectionError()
+
+
+@given("Wikipedia takes too long to answer")
+def wikipedia_times_out(mocked_get):
+    mocked_get.side_effect = requests.exceptions.Timeout()
+
+
+@given("Wikipedia answers with an article without paragraphs")
+def wikipedia_answers_empty_article(mocked_get):
+    mocked_get.return_value.text = build_wikipedia_html("Python", [])
+
+
+@when(
+    parsers.parse('the user tries to search for "{topic}"'),
+    target_fixture="search_error",
+)
+def search_topic_and_fail(topic):
+    with pytest.raises(ScraperError) as error_info:
+        WikipediaScraper().search(topic)
+    return error_info.value
+
+
+@then(parsers.parse('the error message contains "{expected_text}"'))
+def check_error_message(search_error, expected_text):
+    assert expected_text in str(search_error)
