@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 HTTP_CONNECT_TIMEOUT = 10.0
 HTTP_READ_TIMEOUT = 90.0
 MAX_RETRIES = 3
