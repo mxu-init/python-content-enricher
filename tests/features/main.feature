@@ -54,3 +54,38 @@ Feature: Consult a topic from the terminal
     When the application runs
     Then Wikipedia was searched for "Python"
     And the screen shows "Python"
+  Scenario: Show the saved file when a summary is requested
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "s"
+    And Wikipedia answers with the article "Python"
+    And the summary is saved successfully
+    When the application runs
+    Then Wikipedia was searched for "Python"
+    And the screen shows "Resumen guardado en:"
+
+  Scenario: Show a message when the summary cannot be saved
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "s"
+    And Wikipedia answers with the article "Python"
+    And the summary cannot be saved
+    When the application runs
+    Then the screen shows "No se pudo guardar el resumen."
+
+  Scenario: Show a message when the summary cannot be generated
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "s"
+    And Wikipedia answers with the article "Python"
+    And the summary cannot be generated
+    When the application runs
+    Then the screen shows "No se pudo generar el resumen."
+
+  Scenario: Show a message when the article has no content
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "s"
+    And Wikipedia answers with an empty article titled "Python"
+    When the application runs
+    Then the screen shows "No hay contenido suficiente para generar el resumen."

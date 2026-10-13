@@ -1,9 +1,14 @@
 from dataclasses import dataclass
+from pathlib import Path
+
+from src.exporter import ExportError, SummaryTextExporter
 from src.scraper import WikipediaArticle, WikipediaScraper
+from src.summarizer import ArticleSummarizer, SummaryGenerationError
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
 NO_ANSWER = "n"
+EMPTY_SUMMARY_MESSAGE = "No hay contenido suficiente para generar el resumen."
 
 
 @dataclass
@@ -50,17 +55,39 @@ class CliOutput:
             print(paragraph)
             print()
 
+    def show_summary_saved(self, file_path: Path) -> None:
+        print(f"Resumen guardado en: {file_path}")
+
+    def show_error(self, message: str) -> None:
+        print(message)
+
 
 class ContentEnricherApp:
     def __init__(self) -> None:
         self._cli_input = CliInput()
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
+        self._summarizer = ArticleSummarizer()
+        self._summary_exporter = SummaryTextExporter()
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
         article = self._scraper.search(request.topic)
         self._cli_output.show_article(article)
+        if request.wants_summary:
+            self._generate_summary(article)
+
+    def _generate_summary(self, article: WikipediaArticle) -> None:
+        if not article.paragraphs:
+            self._cli_output.show_error(EMPTY_SUMMARY_MESSAGE)
+            return
+        try:
+            summary = self._summarizer.summarize(article)
+            file_path = self._summary_exporter.export(summary)
+        except (SummaryGenerationError, ExportError) as error:
+            self._cli_output.show_error(str(error))
+            return
+        self._cli_output.show_summary_saved(file_path)
 
 
 if __name__ == "__main__": # pragma: no cover
