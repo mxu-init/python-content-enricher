@@ -1,10 +1,12 @@
-from unittest.mock import MagicMock, patch
+import ssl
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from src.enricher import (
     ENRICHMENT_FALLBACK,
+    MAX_RETRIES,
     MISSING_KEY_FALLBACK,
     GeminiContentEnricher,
 )
@@ -140,13 +142,16 @@ def test_enrich_content_returns_missing_key_fallback_when_no_client():
 
 def test_enrich_content_returns_enrichment_fallback_on_exception():
     mock_client = MagicMock()
-    mock_client.models.generate_content.side_effect = Exception("timeout")
+    mock_client.models.generate_content.side_effect = Exception("non-retryable")
     enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
     enricher.logger = MagicMock()
     enricher._api_key = "fake-key"
     enricher._client = mock_client
     result = enricher.enrich_content("Python", "Texto.")
     assert result == ENRICHMENT_FALLBACK
+    mock_client.models.generate_content.assert_called_once()
+    error_calls = enricher.logger.error.call_args_list
+    assert any("firewall" in str(c) or "VPN" in str(c) for c in error_calls)
 
 
 def test_enrich_content_returns_model_text_on_success():
@@ -160,6 +165,65 @@ def test_enrich_content_returns_model_text_on_success():
     enricher._client = mock_client
     result = enricher.enrich_content("Python", "Texto.")
     assert result == "Respuesta enriquecida."
+
+
+def test_generate_content_config_temperature_passed_on_success():
+    from google.genai import types
+
+    mock_response = MagicMock()
+    mock_response.text = "ok"
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = mock_response
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    enricher.enrich_content("Python", "Texto.")
+    _, kwargs = mock_client.models.generate_content.call_args
+    assert "config" in kwargs
+    assert kwargs["config"].temperature == 0.7
+
+
+def test_ssl_error_retries_max_times_then_returns_fallback():
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = ssl.SSLError("handshake timed out")
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    with patch("src.enricher.time.sleep") as mock_sleep:
+        result = enricher._request_enrichment("prompt")
+    assert result == ENRICHMENT_FALLBACK
+    assert mock_client.models.generate_content.call_count == MAX_RETRIES
+    assert mock_sleep.call_count == MAX_RETRIES - 1
+
+
+def test_ssl_error_logs_warning_with_error_name():
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = ssl.SSLError("handshake timed out")
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    with patch("src.enricher.time.sleep"):
+        enricher._request_enrichment("prompt")
+    warning_calls = enricher.logger.warning.call_args_list
+    assert any("SSLError" in str(c) for c in warning_calls)
+
+
+def test_timeout_error_is_retried():
+    mock_response = MagicMock()
+    mock_response.text = "ok after retry"
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = [TimeoutError("timed out"), mock_response]
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    with patch("src.enricher.time.sleep"):
+        result = enricher._request_enrichment("prompt")
+    assert result == "ok after retry"
+    assert mock_client.models.generate_content.call_count == 2
 
 
 def test_init_with_no_key_sets_client_to_none():

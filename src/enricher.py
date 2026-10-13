@@ -1,5 +1,7 @@
 import logging
 import os
+import ssl
+import time
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -7,9 +9,13 @@ from google import genai
 from google.genai import types
 
 GEMINI_MODEL = "gemini-2.5-flash"
-REQUEST_TIMEOUT_SECONDS = 30
+REQUEST_TIMEOUT_SECONDS = 60
+MAX_RETRIES = 3
+RETRY_BASE_DELAY_SECONDS = 2
 ENRICHMENT_FALLBACK = "[Enriquecimiento no disponible: error al contactar con la IA.]"
 MISSING_KEY_FALLBACK = "[Enriquecimiento no disponible: falta la clave GEMINI_API_KEY.]"
+
+_RETRYABLE_ERRORS = (ssl.SSLError, TimeoutError, ConnectionError, OSError)
 
 
 def setup_logger() -> logging.Logger:
@@ -61,14 +67,50 @@ class GeminiContentEnricher:
         )
 
     def _request_enrichment(self, prompt: str) -> str:
-        try:
-            self.logger.info("Enviando solicitud de enriquecimiento a Gemini.")
-            response = self._client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-            )
-            self.logger.info("Respuesta de Gemini recibida correctamente.")
-            return response.text
-        except Exception as error:
-            self.logger.error("Error al contactar con Gemini: %s", error)
-            return ENRICHMENT_FALLBACK
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                self.logger.info(
+                    "Enviando solicitud de enriquecimiento a Gemini (intento %d/%d).",
+                    attempt,
+                    MAX_RETRIES,
+                )
+                response = self._client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(temperature=0.7),
+                )
+                self.logger.info("Respuesta de Gemini recibida correctamente.")
+                return response.text
+            except _RETRYABLE_ERRORS as error:
+                last_error = error
+                delay = RETRY_BASE_DELAY_SECONDS ** attempt
+                self.logger.warning(
+                    "Error de red/SSL en intento %d/%d: %s — %s. Reintentando en %ds...",
+                    attempt,
+                    MAX_RETRIES,
+                    type(error).__name__,
+                    error,
+                    delay,
+                )
+                if attempt < MAX_RETRIES:
+                    time.sleep(delay)
+            except Exception as error:
+                last_error = error
+                self.logger.error(
+                    "Error no recuperable al contactar con Gemini (%s): %s",
+                    type(error).__name__,
+                    error,
+                )
+                break
+
+        self.logger.error(
+            "Fallo definitivo tras %d intento(s). Ultimo error (%s): %s. "
+            "Verifica conectividad a generativelanguage.googleapis.com "
+            "(posible bloqueo de firewall/VPN).",
+            MAX_RETRIES,
+            type(last_error).__name__,
+            last_error,
+        )
+        return ENRICHMENT_FALLBACK
