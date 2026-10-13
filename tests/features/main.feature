@@ -54,3 +54,11 @@ Feature: Consult a topic from the terminal
     When the application runs
     Then Wikipedia was searched for "Python"
     And the screen shows "Python"
+
+  Scenario: Show an error when the search fails
+    Given the user types "Tema inexistente"
+    And the user types "en"
+    And the user types "n"
+    And the search fails with the message "No se encontró ningún artículo"
+    When the application runs
+    Then the screen shows "[Error]: No se encontró ningún artículo"

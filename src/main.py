@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.scraper import WikipediaArticle, WikipediaScraper
+from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
@@ -50,6 +50,9 @@ class CliOutput:
             print(paragraph)
             print()
 
+    def show_error(self, message: str) -> None:
+        print(f"[Error]: {message}")
+
 
 class ContentEnricherApp:
     def __init__(self) -> None:
@@ -59,7 +62,11 @@ class ContentEnricherApp:
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
-        article = self._scraper.search(request.topic)
+        try:
+            article = self._scraper.search(request.topic)
+        except ScraperError as error:
+            self._cli_output.show_error(str(error))
+            return
         self._cli_output.show_article(article)
 
 

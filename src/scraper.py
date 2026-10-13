@@ -4,9 +4,30 @@ import requests
 from bs4 import BeautifulSoup
 
 WIKIPEDIA_SEARCH_URL = "https://es.wikipedia.org/w/index.php"
+SEARCH_RESULTS_URL_MARKER = "search="
 REQUEST_HEADERS = {"User-Agent": "ContentEnricher/1.0 (course project)"}
 REQUEST_TIMEOUT_SECONDS = 10
 PARAGRAPH_LIMIT = 5
+
+
+class ScraperError(Exception):
+    pass
+
+
+class TopicNotFoundError(ScraperError):
+    pass
+
+
+class WikipediaConnectionError(ScraperError):
+    pass
+
+
+class WikipediaTimeoutError(ScraperError):
+    pass
+
+
+class EmptyArticleError(ScraperError):
+    pass
 
 
 @dataclass
@@ -44,14 +65,38 @@ class WikipediaScraper:
 
     def search(self, topic: str) -> WikipediaArticle:
         html = self._fetch_html(topic)
-        return self._parser.parse(html)
+        article = self._parser.parse(html)
+        if not article.paragraphs:
+            raise EmptyArticleError(
+                f"El artículo '{topic}' no contiene suficiente información."
+            )
+        return article
 
     def _fetch_html(self, topic: str) -> str:
-        response = requests.get(
-            WIKIPEDIA_SEARCH_URL,
-            params={"search": topic},
-            headers=REQUEST_HEADERS,
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
-        response.raise_for_status()
+        try:
+            response = requests.get(
+                WIKIPEDIA_SEARCH_URL,
+                params={"search": topic},
+                headers=REQUEST_HEADERS,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+        except requests.exceptions.Timeout as error:
+            raise WikipediaTimeoutError(
+                "La solicitud a Wikipedia ha expirado. Inténtalo de nuevo."
+            ) from error
+        except requests.exceptions.ConnectionError as error:
+            raise WikipediaConnectionError(
+                "No se pudo conectar con Wikipedia. Verifica tu conexión a internet."
+            ) from error
+        if not response.ok:
+            raise WikipediaConnectionError(
+                "Wikipedia no pudo atender la solicitud. Inténtalo más tarde."
+            )
+        if self._is_search_results_page(response):
+            raise TopicNotFoundError(
+                f"No se encontró ningún artículo en Wikipedia para: '{topic}'."
+            )
         return response.text
+
+    def _is_search_results_page(self, response) -> bool:
+        return SEARCH_RESULTS_URL_MARKER in response.url
