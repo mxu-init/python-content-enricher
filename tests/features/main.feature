@@ -82,6 +82,16 @@ Feature: Consult a topic from the terminal
     When the application runs
     Then the screen shows "No se pudo generar el resumen."
 
+  Scenario: Show a friendly message when Gemini is not available
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "s"
+    And Wikipedia answers with the article "Python"
+    And Gemini is not available
+    When the application runs
+    Then the screen shows "Por favor, inténtelo más tarde."
+
+
   Scenario: Show a message when the article has no content
     Given the user types "Python"
     And the user types "en"

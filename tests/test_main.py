@@ -6,7 +6,11 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from src.exporter import ExportError
 from src.main import CliInput, CliOutput, ContentEnricherApp
 from src.scraper import WikipediaArticle
-from src.summarizer import ArticleSummary, SummaryGenerationError
+from src.summarizer import (
+    ArticleSummary,
+    CONNECTION_ERROR_MESSAGE,
+    SummaryGenerationError,
+)
 
 scenarios("features/main.feature")
 pytestmark = pytest.mark.usefixtures("capsys")
@@ -121,6 +125,13 @@ def summary_cannot_be_saved(mocked_summarizer, mocked_summary_exporter):
 def summary_cannot_be_generated(mocked_summarizer):
     mocked_summarizer.summarize.side_effect = SummaryGenerationError(
         "No se pudo generar el resumen."
+    )
+
+
+@given("Gemini is not available")
+def gemini_not_available(mocked_summarizer):
+    mocked_summarizer.summarize.side_effect = SummaryGenerationError(
+        CONNECTION_ERROR_MESSAGE
     )
 
 

@@ -12,21 +12,25 @@ GEMINI_TIMEOUT_SECONDS = 30
 ENV_FILE_NAME = ".env"
 ENV_FILE_DIRECTORY = Path(__file__).resolve().parent.parent
 SUMMARY_PROMPT_TEMPLATE = (
-    "Resume en español el siguiente artículo de Wikipedia en un solo párrafo "
-    "de 3 a 5 frases. Responde únicamente con el resumen.\n\n"
+    "Resume en español el siguiente artículo de Wikipedia en exactamente tres "
+    "párrafos separados por una línea en blanco, cada uno de dos a tres frases. "
+    "No uses viñetas ni títulos. Responde únicamente con los tres párrafos.\n\n"
     "Título: {title}\n\n{content}"
 )
 MISSING_API_KEY_MESSAGE = (
-    f"Falta la variable de entorno {GEMINI_API_KEY_VARIABLE} con tu clave de la API de Gemini."
+    "No se pudo generar el resumen: falta la clave de API de Gemini. "
+    "Por favor, inténtelo más tarde."
 )
-CONNECTION_ERROR_MESSAGE = "No se pudo conectar con Gemini."
-INVALID_RESPONSE_MESSAGE = "Gemini no devolvió un resumen válido."
-DEFAULT_HTTP_ERROR_MESSAGE = "Gemini respondió con el error {status_code}."
+CONNECTION_ERROR_MESSAGE = "No se pudo conectar con Gemini. Por favor, inténtelo más tarde."
+INVALID_RESPONSE_MESSAGE = (
+    "Gemini no devolvió un resumen válido. Por favor, inténtelo más tarde."
+)
+DEFAULT_HTTP_ERROR_MESSAGE = "Gemini no respondió correctamente. Por favor, inténtelo más tarde."
 HTTP_ERROR_MESSAGES = {
-    400: "Gemini rechazó la petición: revisa la clave y que el plan gratuito esté disponible en tu país.",
-    403: "La clave de Gemini no tiene permiso para usar este modelo.",
-    404: "El modelo de Gemini configurado no existe o ya no está disponible.",
-    429: "Se alcanzó el límite del plan gratuito de Gemini. Inténtalo más tarde.",
+    400: "La clave de API de Gemini no es válida. Por favor, inténtelo más tarde.",
+    403: "La clave de API de Gemini no tiene permiso para usar este modelo. Por favor, inténtelo más tarde.",
+    404: "El modelo de Gemini solicitado no está disponible. Por favor, inténtelo más tarde.",
+    429: "Se alcanzó el límite de solicitudes de Gemini. Por favor, inténtelo más tarde.",
 }
 
 
@@ -88,5 +92,4 @@ class ArticleSummarizer:
         status_code = getattr(error, "status_code", None)
         if status_code is None:
             return CONNECTION_ERROR_MESSAGE
-        default_message = DEFAULT_HTTP_ERROR_MESSAGE.format(status_code=status_code)
-        return HTTP_ERROR_MESSAGES.get(status_code, default_message)
+        return HTTP_ERROR_MESSAGES.get(status_code, DEFAULT_HTTP_ERROR_MESSAGE)
