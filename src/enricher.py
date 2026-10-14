@@ -19,8 +19,15 @@ import httpx
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError
 
-GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+FALLBACK_MODELS = (
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+)
 HTTP_CONNECT_TIMEOUT = 10.0
 HTTP_READ_TIMEOUT = 90.0
 MAX_RETRIES = 3
@@ -28,7 +35,14 @@ RETRY_BASE_DELAY_SECONDS = 2
 ENRICHMENT_FALLBACK = "[Enriquecimiento no disponible: error al contactar con la IA.]"
 MISSING_KEY_FALLBACK = "[Enriquecimiento no disponible: falta la clave GEMINI_API_KEY.]"
 
-_RETRYABLE_ERRORS = (ssl.SSLError, TimeoutError, ConnectionError, OSError, httpx.TimeoutException)
+_RETRYABLE_ERRORS = (
+    ssl.SSLError,
+    TimeoutError,
+    ConnectionError,
+    OSError,
+    httpx.TimeoutException,
+    ServerError,
+)
 
 
 def setup_logger() -> logging.Logger:
@@ -48,7 +62,16 @@ class GeminiContentEnricher:
         self.logger = logger or setup_logger()
         load_dotenv()
         self._api_key = os.getenv("GEMINI_API_KEY")
+        self._model = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
         self._client = self._build_client()
+
+    def _get_candidate_models(self) -> list[str]:
+        primary = getattr(self, "_model", None) or os.getenv("GEMINI_MODEL", GEMINI_MODEL)
+        candidates = [primary]
+        for fallback in FALLBACK_MODELS:
+            if fallback not in candidates:
+                candidates.append(fallback)
+        return candidates
 
     def _build_client(self) -> Optional[genai.Client]:
         if not self._api_key:
@@ -94,18 +117,24 @@ class GeminiContentEnricher:
 
     def _request_enrichment(self, prompt: str) -> str:
         last_error: Optional[Exception] = None
+        candidate_models = self._get_candidate_models()
 
         for attempt in range(1, MAX_RETRIES + 1):
+            model_to_use = candidate_models[min(attempt - 1, len(candidate_models) - 1)]
             try:
                 self.logger.info(
-                    "Enviando solicitud de enriquecimiento a Gemini (intento %d/%d).",
+                    "Enviando solicitud de enriquecimiento a Gemini (intento %d/%d) con modelo '%s'.",
                     attempt,
                     MAX_RETRIES,
+                    model_to_use,
                 )
                 response = self._client.models.generate_content(
-                    model=GEMINI_MODEL,
+                    model=model_to_use,
                     contents=prompt,
-                    config=types.GenerateContentConfig(temperature=0.7),
+                    config=types.GenerateContentConfig(
+                        temperature=0.7,
+                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                    ),
                 )
                 self.logger.info("Respuesta de Gemini recibida correctamente.")
                 return response.text
@@ -113,7 +142,7 @@ class GeminiContentEnricher:
                 last_error = error
                 delay = RETRY_BASE_DELAY_SECONDS ** attempt
                 self.logger.warning(
-                    "Error de red/SSL en intento %d/%d: %s — %s. Reintentando en %ds...",
+                    "Error de red/servidor en intento %d/%d: %s — %s. Reintentando en %ds...",
                     attempt,
                     MAX_RETRIES,
                     type(error).__name__,

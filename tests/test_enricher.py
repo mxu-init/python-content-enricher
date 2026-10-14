@@ -280,3 +280,49 @@ def test_init_with_key_creates_client():
         enricher = GeminiContentEnricher()
     real_http_client.close()
     assert enricher._client is mock_client_instance
+
+
+def test_generate_content_config_disables_afc():
+    mock_response = MagicMock()
+    mock_response.text = "ok"
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = mock_response
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    enricher.enrich_content("Python", "Texto.")
+    _, kwargs = mock_client.models.generate_content.call_args
+    assert kwargs["config"].automatic_function_calling.disable is True
+
+
+def test_server_error_is_retried_and_uses_fallback_model():
+    from google.genai.errors import ServerError
+
+    mock_response = MagicMock()
+    mock_response.text = "ok from fallback"
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = [
+        ServerError(503, {"error": {"message": "High demand"}}, None),
+        mock_response,
+    ]
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._api_key = "fake-key"
+    enricher._client = mock_client
+    with patch("src.enricher.time.sleep"):
+        result = enricher._request_enrichment("prompt")
+    assert result == "ok from fallback"
+    assert mock_client.models.generate_content.call_count == 2
+    first_call_model = mock_client.models.generate_content.call_args_list[0].kwargs["model"]
+    second_call_model = mock_client.models.generate_content.call_args_list[1].kwargs["model"]
+    assert first_call_model != second_call_model
+
+
+def test_get_candidate_models_custom_env():
+    enricher = GeminiContentEnricher.__new__(GeminiContentEnricher)
+    enricher.logger = MagicMock()
+    enricher._model = "custom-model"
+    candidates = enricher._get_candidate_models()
+    assert candidates[0] == "custom-model"
+
