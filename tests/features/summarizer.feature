@@ -14,6 +14,32 @@ Feature: Article summary generation with Gemini
   Scenario: Fail when the API key is missing
     Given an article titled "Python" with the paragraphs "Python is a language." and "It is used widely."
     And no Gemini API key is configured
+    And the project has no .env file
+    When the article is summarized with an expected error
+    Then the summary error message is "Falta la variable de entorno GEMINI_API_KEY con tu clave de la API de Gemini."
+
+  Scenario: Read the API key from a .env file when the environment variable is missing
+    Given an article titled "Python" with the paragraphs "Python is a language." and "It is used widely."
+    And no Gemini API key is configured
+    And a Gemini API key is configured in a .env file
+    And Gemini answers with a valid summary
+    When the article is summarized
+    Then the summary title is "Python"
+    And the summary text is "Resumen de prueba."
+
+  Scenario: Fail when the API key is missing from the environment and the .env file
+    Given an article titled "Python" with the paragraphs "Python is a language." and "It is used widely."
+    And no Gemini API key is configured
+    And the project has no .env file
+    And Gemini answers with a valid summary
+    When the article is summarized with an expected error
+    Then the summary error message is "Falta la variable de entorno GEMINI_API_KEY con tu clave de la API de Gemini."
+
+  Scenario: Fail when the .env file exists without a Gemini API key
+    Given an article titled "Python" with the paragraphs "Python is a language." and "It is used widely."
+    And no Gemini API key is configured
+    And a .env file without a Gemini API key
+    And Gemini answers with a valid summary
     When the article is summarized with an expected error
     Then the summary error message is "Falta la variable de entorno GEMINI_API_KEY con tu clave de la API de Gemini."
 

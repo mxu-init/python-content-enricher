@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from google import genai
 
@@ -8,6 +9,8 @@ from src.scraper import WikipediaArticle
 GEMINI_API_KEY_VARIABLE = "GEMINI_API_KEY"
 GEMINI_MODEL = "gemini-3-flash-preview"
 GEMINI_TIMEOUT_SECONDS = 30
+ENV_FILE_NAME = ".env"
+ENV_FILE_DIRECTORY = Path(__file__).resolve().parent.parent
 SUMMARY_PROMPT_TEMPLATE = (
     "Resume en español el siguiente artículo de Wikipedia en un solo párrafo "
     "de 3 a 5 frases. Responde únicamente con el resumen.\n\n"
@@ -49,8 +52,20 @@ class ArticleSummarizer:
     def _read_api_key(self) -> str:
         api_key = os.environ.get(GEMINI_API_KEY_VARIABLE, "").strip()
         if not api_key:
+            api_key = self._read_api_key_from_env_file()
+        if not api_key:
             raise SummaryGenerationError(MISSING_API_KEY_MESSAGE)
         return api_key
+
+    def _read_api_key_from_env_file(self) -> str:
+        env_file = ENV_FILE_DIRECTORY / ENV_FILE_NAME
+        if not env_file.is_file():
+            return ""
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            name, separator, value = line.partition("=")
+            if separator and name.strip() == GEMINI_API_KEY_VARIABLE:
+                return value.strip().strip('"').strip("'")
+        return ""
 
     def _build_prompt(self, article: WikipediaArticle) -> str:
         return SUMMARY_PROMPT_TEMPLATE.format(

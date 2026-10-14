@@ -41,6 +41,23 @@ def gemini_key_missing(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
 
+@given("a Gemini API key is configured in a .env file")
+def gemini_key_in_env_file(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.summarizer.ENV_FILE_DIRECTORY", tmp_path)
+    (tmp_path / ".env").write_text('GEMINI_API_KEY="test-key"\n', encoding="utf-8")
+
+
+@given("a .env file without a Gemini API key")
+def env_file_without_gemini_key(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.summarizer.ENV_FILE_DIRECTORY", tmp_path)
+    (tmp_path / ".env").write_text('OTHER_VAR="value"\n', encoding="utf-8")
+
+
+@given("the project has no .env file")
+def project_without_env_file(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.summarizer.ENV_FILE_DIRECTORY", tmp_path)
+
+
 @given("Gemini answers with a valid summary")
 def gemini_valid_answer(mocked_client):
     mocked_client.interactions.create.return_value.output_text = (
