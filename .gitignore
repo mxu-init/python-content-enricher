@@ -56,6 +56,3 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
-
-# Generated text summaries
-output/*.txt

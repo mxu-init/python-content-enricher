@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from src.exporter import ExportError
 from src.main import CliInput, CliOutput, ContentEnricherApp
 from src.scraper import WikipediaArticle
 from src.summarizer import (
@@ -75,12 +74,6 @@ def mocked_summarizer():
         yield summarizer_class.return_value
 
 
-@pytest.fixture
-def mocked_summary_exporter():
-    with patch("src.main.SummaryTextExporter") as exporter_class:
-        yield exporter_class.return_value
-
-
 @given(
     parsers.parse(
         'an article titled "{title}" with the paragraphs "{first}" and "{second}"'
@@ -103,21 +96,10 @@ def wikipedia_answers_empty(mocked_scraper, title):
     mocked_scraper.search.return_value = WikipediaArticle(title=title, paragraphs=[])
 
 
-@given("the summary is saved successfully")
-def summary_saved_successfully(mocked_summarizer, mocked_summary_exporter, tmp_path):
+@given("the summary is generated successfully")
+def summary_generated_successfully(mocked_summarizer):
     mocked_summarizer.summarize.return_value = ArticleSummary(
         title="Python", text="Resumen de prueba."
-    )
-    mocked_summary_exporter.export.return_value = tmp_path / "python_summary.txt"
-
-
-@given("the summary cannot be saved")
-def summary_cannot_be_saved(mocked_summarizer, mocked_summary_exporter):
-    mocked_summarizer.summarize.return_value = ArticleSummary(
-        title="Python", text="Resumen de prueba."
-    )
-    mocked_summary_exporter.export.side_effect = ExportError(
-        "No se pudo guardar el resumen."
     )
 
 
