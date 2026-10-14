@@ -41,7 +41,7 @@ class CliInput:
 
     def _ask_summary(self) -> bool:
         while True:
-            answer = input("¿Quieres un resumen aparte? (s/n): ").strip().lower()
+            answer = input("¿Quieres ver el resumen del tema? (s/n): ").strip().lower()
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
