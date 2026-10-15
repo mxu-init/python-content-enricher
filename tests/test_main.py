@@ -4,7 +4,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from src.main import CliInput, CliOutput, ContentEnricherApp
-from src.scraper import WikipediaArticle
+from src.scraper import ScraperError, WikipediaArticle
 
 scenarios("features/main.feature")
 pytestmark = pytest.mark.usefixtures("capsys")
@@ -99,3 +99,8 @@ def run_application(typed_answers, mocked_scraper, mocked_enricher):
 @then(parsers.parse('Wikipedia was searched for "{topic}"'))
 def check_search(mocked_scraper, topic):
     mocked_scraper.search.assert_called_once_with(topic)
+
+
+@given(parsers.parse('the search fails with the message "{message}"'))
+def search_fails(mocked_scraper, message):
+    mocked_scraper.search.side_effect = ScraperError(message)

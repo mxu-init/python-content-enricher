@@ -2,7 +2,8 @@ from dataclasses import dataclass
 import logging
 
 from src.enricher import GeminiContentEnricher
-from src.scraper import WikipediaArticle, WikipediaScraper
+from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
+from src.exporters import TxtExporter, PdfExporter
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
@@ -14,14 +15,20 @@ class UserRequest:
     topic: str
     language: str
     wants_summary: bool
+    wants_export: bool
+    filename: str
+    export_format: str
 
 
 class CliInput:
     def ask_request(self) -> UserRequest:
+        topic = self._ask_topic()
+        language = self._ask_language()
+        wants_summary = self._ask_summary()
+        wants_export, filename, export_format = self._ask_export()
+        
         return UserRequest(
-            topic=self._ask_topic(),
-            language=self._ask_language(),
-            wants_summary=self._ask_summary(),
+            topic, language, wants_summary, wants_export, filename, export_format
         )
 
     def _ask_topic(self) -> str:
@@ -46,12 +53,37 @@ class CliInput:
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
 
+    def _ask_export(self) -> tuple[bool, str, str]:
+        while True:
+            answer = input("¿Quieres exportar el resultado a un archivo? (s/n): ").strip().lower()
+            if answer == NO_ANSWER:
+                return False, "", ""
+            if answer == YES_ANSWER:
+                break
+            print("Responde con 's' o 'n'.")
+
+        while True:
+            filename = input("Nombre del archivo: ").strip()
+            if filename:
+                break
+            print("El nombre del archivo no puede estar vacío.")
+
+        while True:
+            fmt = input("Formato de exportación (txt/pdf): ").strip().lower()
+            if fmt in ("txt", "pdf"):
+                return True, filename, fmt
+            print("Formato no válido. Debe ser 'txt' o 'pdf'.")
+
+
 class CliOutput:
     def show_article(self, article: WikipediaArticle) -> None:
         print(f"\n{article.title}\n")
         for paragraph in article.paragraphs:
             print(paragraph)
             print()
+    
+    def show_error(self, message: str) -> None:
+        print(f"[Error]: {message}")
 
 
 class ContentEnricherApp:
@@ -61,15 +93,50 @@ class ContentEnricherApp:
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
         self._enricher = GeminiContentEnricher(self._logger)
+        self._txt_exporter = TxtExporter()
+        self._pdf_exporter = PdfExporter()
+        
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
-        article = self._scraper.search(request.topic)
+        try:
+            article = self._scraper.search(request.topic)
+        except ScraperError as error:
+            self._cli_output.show_error(str(error))
+            return
         self._cli_output.show_article(article)
         original_text = "\n".join(article.paragraphs)
         enriched_text = self._enricher.enrich_content(article.title, original_text)
         print("\n--- Contenido Enriquecido por IA ---\n")
         print(enriched_text)
+
+        if request.wants_export:
+            # Unimos los párrafos del artículo simulando el contenido original 
+            # (y puedes adaptar las variables de enriquecido/traducido según los siguientes módulos)
+            content_text = "\n\n".join(article.paragraphs)
+            
+            try:
+                if request.export_format == "txt":
+                    self._txt_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                elif request.export_format == "pdf":
+                    self._pdf_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                print(f"¡Archivo exportado con éxito como '{request.filename}'!")
+            except Exception as e:
+                print(f"Error al exportar: {e}")
+
+        if request.wants_export:
+            # Unimos los párrafos del artículo simulando el contenido original 
+            # (y puedes adaptar las variables de enriquecido/traducido según los siguientes módulos)
+            content_text = "\n\n".join(article.paragraphs)
+            
+            try:
+                if request.export_format == "txt":
+                    self._txt_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                elif request.export_format == "pdf":
+                    self._pdf_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                print(f"¡Archivo exportado con éxito como '{request.filename}'!")
+            except Exception as e:
+                print(f"Error al exportar: {e}")
 
 
 if __name__ == "__main__": # pragma: no cover
