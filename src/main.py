@@ -117,23 +117,9 @@ class ContentEnricherApp:
             
             try:
                 if request.export_format == "txt":
-                    self._txt_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                    self._txt_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
                 elif request.export_format == "pdf":
-                    self._pdf_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
-                print(f"¡Archivo exportado con éxito como '{request.filename}'!")
-            except Exception as e:
-                print(f"Error al exportar: {e}")
-
-        if request.wants_export:
-            # Unimos los párrafos del artículo simulando el contenido original 
-            # (y puedes adaptar las variables de enriquecido/traducido según los siguientes módulos)
-            content_text = "\n\n".join(article.paragraphs)
-            
-            try:
-                if request.export_format == "txt":
-                    self._txt_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
-                elif request.export_format == "pdf":
-                    self._pdf_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                    self._pdf_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
                 print(f"¡Archivo exportado con éxito como '{request.filename}'!")
             except Exception as e:
                 print(f"Error al exportar: {e}")
