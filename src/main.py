@@ -1,9 +1,14 @@
 from dataclasses import dataclass
+from pathlib import Path
+
+from src.exporter import ExportError, SummaryTextExporter
 from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
+from src.summarizer import ArticleSummarizer, ArticleSummary, SummaryGenerationError
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
 NO_ANSWER = "n"
+EMPTY_SUMMARY_MESSAGE = "No hay contenido suficiente para generar el resumen."
 
 
 @dataclass
@@ -38,7 +43,14 @@ class CliInput:
 
     def _ask_summary(self) -> bool:
         while True:
-            answer = input("¿Quieres un resumen aparte? (s/n): ").strip().lower()
+            answer = input("¿Quieres ver el resumen del tema? (s/n): ").strip().lower()
+            if answer in (YES_ANSWER, NO_ANSWER):
+                return answer == YES_ANSWER
+            print("Responde con 's' o 'n'.")
+
+    def ask_export(self) -> bool:
+        while True:
+            answer = input("¿Quieres guardar el resumen en un archivo? (s/n): ").strip().lower()
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
@@ -53,12 +65,21 @@ class CliOutput:
     def show_error(self, message: str) -> None:
         print(f"[Error]: {message}")
 
+    def show_summary(self, summary: ArticleSummary) -> None:
+        print(f"\nResumen: {summary.title}\n")
+        print(summary.text)
+
+    def show_summary_saved(self, file_path: Path) -> None:
+        print(f"Resumen guardado en: {file_path}")
+
 
 class ContentEnricherApp:
     def __init__(self) -> None:
         self._cli_input = CliInput()
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
+        self._summarizer = ArticleSummarizer()
+        self._summary_exporter = SummaryTextExporter()
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
@@ -68,6 +89,29 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
+        if request.wants_summary:
+            self._generate_summary(article)
+
+    def _generate_summary(self, article: WikipediaArticle) -> None:
+        if not article.paragraphs:
+            self._cli_output.show_error(EMPTY_SUMMARY_MESSAGE)
+            return
+        try:
+            summary = self._summarizer.summarize(article)
+        except SummaryGenerationError as error:
+            self._cli_output.show_error(str(error))
+            return
+        self._cli_output.show_summary(summary)
+        if self._cli_input.ask_export():
+            self._export_summary(summary)
+
+    def _export_summary(self, summary: ArticleSummary) -> None:
+        try:
+            file_path = self._summary_exporter.export(summary)
+        except ExportError as error:
+            self._cli_output.show_error(str(error))
+            return
+        self._cli_output.show_summary_saved(file_path)
 
 
 if __name__ == "__main__": # pragma: no cover
