@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.scraper import WikipediaArticle, WikipediaScraper
+from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 from src.exporters import TxtExporter, PdfExporter
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
@@ -25,12 +25,7 @@ class CliInput:
         wants_export, filename, export_format = self._ask_export()
         
         return UserRequest(
-            topic=topic,
-            language=language,
-            wants_summary=wants_summary,
-            wants_export=wants_export,
-            filename=filename,
-            export_format=export_format,
+            topic, language, wants_summary, wants_export, filename, export_format
         )
 
     def _ask_topic(self) -> str:
@@ -83,6 +78,9 @@ class CliOutput:
         for paragraph in article.paragraphs:
             print(paragraph)
             print()
+    
+    def show_error(self, message: str) -> None:
+        print(f"[Error]: {message}")
 
 
 class ContentEnricherApp:
@@ -95,7 +93,11 @@ class ContentEnricherApp:
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
-        article = self._scraper.search(request.topic)
+        try:
+            article = self._scraper.search(request.topic)
+        except ScraperError as error:
+            self._cli_output.show_error(str(error))
+            return
         self._cli_output.show_article(article)
 
         if request.wants_export:
