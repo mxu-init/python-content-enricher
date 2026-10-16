@@ -88,6 +88,11 @@ class CliOutput:
         print(translated_text)
         print()
 
+    def show_enriched_content(self, enriched_text: str) -> None:
+        print("\n--- Contenido Enriquecido por IA ---\n")
+        print(enriched_text)
+        print()
+
     def show_error(self, message: str) -> None:
         print(f"[Error]: {message}")
 
@@ -111,11 +116,10 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
-        
+
         original_text = "\n\n".join(article.paragraphs)
         enriched_text = self._enricher.enrich_content(article.title, original_text)
-        print("\n--- Contenido Enriquecido por IA ---\n")
-        print(enriched_text)
+        self._cli_output.show_enriched_content(enriched_text)
 
         try:
             translated_text = self._translator.translate(enriched_text, request.language)
