@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+import logging
+
+from src.enricher import GeminiContentEnricher
 from pathlib import Path
 
 from src.exporter import ExportError, SummaryTextExporter
@@ -104,13 +107,16 @@ class CliOutput:
 
 class ContentEnricherApp:
     def __init__(self) -> None:
+        self._logger = logging.getLogger("content_enricher_app")
         self._cli_input = CliInput()
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
+        self._enricher = GeminiContentEnricher(self._logger)
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
         self._summarizer = ArticleSummarizer()
         self._summary_exporter = SummaryTextExporter()
+        
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
@@ -120,6 +126,10 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
+        original_text = "\n".join(article.paragraphs)
+        enriched_text = self._enricher.enrich_content(article.title, original_text)
+        print("\n--- Contenido Enriquecido por IA ---\n")
+        print(enriched_text)
 
         if request.wants_export:
             # Unimos los párrafos del artículo simulando el contenido original 
@@ -128,9 +138,9 @@ class ContentEnricherApp:
             
             try:
                 if request.export_format == "txt":
-                    self._txt_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                    self._txt_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
                 elif request.export_format == "pdf":
-                    self._pdf_exporter.export(request.filename, content_text, "[Contenido enriquecido pendiente]", "[Contenido traducido pendiente]")
+                    self._pdf_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
                 print(f"¡Archivo exportado con éxito como '{request.filename}'!")
             except Exception as e:
                 print(f"Error al exportar: {e}")

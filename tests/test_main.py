@@ -71,6 +71,13 @@ def mocked_scraper():
 
 
 @pytest.fixture
+def mocked_enricher():
+    with patch("src.main.GeminiContentEnricher") as enricher_class:
+        enricher_class.return_value.enrich_content.return_value = "[mocked enrichment]"
+        yield enricher_class.return_value
+
+
+@pytest.fixture
 def mocked_summarizer():
     with patch("src.main.ArticleSummarizer") as summarizer_class:
         yield summarizer_class.return_value
@@ -143,7 +150,7 @@ def show_article(article):
 
 
 @when("the application runs")
-def run_application(typed_answers, mocked_scraper):
+def run_application(typed_answers, mocked_scraper, mocked_enricher):
     with patch("builtins.input", side_effect=typed_answers):
         ContentEnricherApp().run()
 
