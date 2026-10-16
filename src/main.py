@@ -117,7 +117,7 @@ class ContentEnricherApp:
         print(enriched_text)
 
         try:
-            translated_text = self._translator.translate(original_text, request.language)
+            translated_text = self._translator.translate(enriched_text, request.language)
         except TranslationError as error:
             self._cli_output.show_error(str(error))
             return
