@@ -2,8 +2,9 @@ from dataclasses import dataclass
 import logging
 
 from src.enricher import GeminiContentEnricher
-from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 from src.exporters import TxtExporter, PdfExporter
+from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
+from src.translator import ContentTranslator, TranslationError
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
