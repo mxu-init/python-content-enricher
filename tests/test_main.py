@@ -5,6 +5,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from src.main import CliInput, CliOutput, ContentEnricherApp
 from src.scraper import ScraperError, WikipediaArticle
+from src.translator import TranslationError
 
 scenarios("features/main.feature")
 pytestmark = pytest.mark.usefixtures("capsys")
@@ -68,6 +69,13 @@ def mocked_enricher():
         yield enricher_class.return_value
 
 
+@pytest.fixture(autouse=True)
+def mocked_translator():
+    with patch("src.main.ContentTranslator") as translator_class:
+        translator_class.return_value.translate.return_value = "Translated content."
+        yield translator_class.return_value
+
+
 @given(
     parsers.parse(
         'an article titled "{title}" with the paragraphs "{first}" and "{second}"'
@@ -104,3 +112,13 @@ def check_search(mocked_scraper, topic):
 @given(parsers.parse('the search fails with the message "{message}"'))
 def search_fails(mocked_scraper, message):
     mocked_scraper.search.side_effect = ScraperError(message)
+
+
+@given(parsers.parse('the translation fails with the message "{message}"'))
+def translation_fails(mocked_translator, message):
+    mocked_translator.translate.side_effect = TranslationError(message)
+
+
+@then(parsers.parse('the translator was asked for the language "{language}"'))
+def check_translator_language(mocked_translator, language):
+    assert mocked_translator.translate.call_args.args[1] == language
