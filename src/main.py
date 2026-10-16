@@ -82,7 +82,12 @@ class CliOutput:
         for paragraph in article.paragraphs:
             print(paragraph)
             print()
-    
+
+    def show_translation(self, translated_text: str, language: str) -> None:
+        print(f"\n--- Traducción ({language}) ---\n")
+        print(translated_text)
+        print()
+
     def show_error(self, message: str) -> None:
         print(f"[Error]: {message}")
 
@@ -94,9 +99,9 @@ class ContentEnricherApp:
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
         self._enricher = GeminiContentEnricher(self._logger)
+        self._translator = ContentTranslator()
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
-        
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
@@ -106,21 +111,24 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
-        original_text = "\n".join(article.paragraphs)
+        original_text = "\n\n".join(article.paragraphs)
         enriched_text = self._enricher.enrich_content(article.title, original_text)
         print("\n--- Contenido Enriquecido por IA ---\n")
         print(enriched_text)
 
+        try:
+            translated_text = self._translator.translate(original_text, request.language)
+        except TranslationError as error:
+            self._cli_output.show_error(str(error))
+            return
+        self._cli_output.show_translation(translated_text, request.language)
+
         if request.wants_export:
-            # Unimos los párrafos del artículo simulando el contenido original 
-            # (y puedes adaptar las variables de enriquecido/traducido según los siguientes módulos)
-            content_text = "\n\n".join(article.paragraphs)
-            
             try:
                 if request.export_format == "txt":
-                    self._txt_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
+                    self._txt_exporter.export(request.filename, original_text, enriched_text, translated_text)
                 elif request.export_format == "pdf":
-                    self._pdf_exporter.export(request.filename, content_text, enriched_text, "[Contenido traducido pendiente]")
+                    self._pdf_exporter.export(request.filename, original_text, enriched_text, translated_text)
                 print(f"¡Archivo exportado con éxito como '{request.filename}'!")
             except Exception as e:
                 print(f"Error al exportar: {e}")
