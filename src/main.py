@@ -82,15 +82,15 @@ class CliOutput:
         for paragraph in article.paragraphs:
             print(paragraph)
             print()
+            
+    def show_enriched_content(self, enriched_text: str) -> None:
+        print("\n--- Contenido Enriquecido por IA ---\n")
+        print(enriched_text)
+        print()
 
     def show_translation(self, translated_text: str, language: str) -> None:
         print(f"\n--- Traducción ({language}) ---\n")
         print(translated_text)
-        print()
-
-    def show_enriched_content(self, enriched_text: str) -> None:
-        print("\n--- Contenido Enriquecido por IA ---\n")
-        print(enriched_text)
         print()
 
     def show_error(self, message: str) -> None:
