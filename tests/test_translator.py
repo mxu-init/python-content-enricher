@@ -4,30 +4,42 @@ import pytest
 import requests
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from src.translator import MAX_CHUNK_LENGTH, ContentTranslator, TranslationError
+from src.translator import (
+    MAX_CHUNK_LENGTH,
+    MYMEMORY_WARNING,
+    ContentTranslator,
+    TranslationError,
+)
 
 scenarios("features/translator.feature")
 
 
 @pytest.fixture
-def mocked_google_translator():
-    with patch("src.translator.GoogleTranslator") as translator_class:
+def mocked_translation_service():
+    with patch("src.translator.MyMemoryTranslator") as translator_class:
         yield translator_class
 
 
 @given(
     parsers.parse('a translation service that prefixes every text with "{prefix}"')
 )
-def service_with_prefix(mocked_google_translator, prefix):
-    mocked_google_translator.return_value.translate.side_effect = (
+def service_with_prefix(mocked_translation_service, prefix):
+    mocked_translation_service.return_value.translate.side_effect = (
         lambda text: f"{prefix}{text}"
     )
 
 
 @given("a translation service that is not reachable")
-def service_not_reachable(mocked_google_translator):
-    mocked_google_translator.return_value.translate.side_effect = (
+def service_not_reachable(mocked_translation_service):
+    mocked_translation_service.return_value.translate.side_effect = (
         requests.exceptions.ConnectionError()
+    )
+
+
+@given("a translation service that answers with a daily limit warning")
+def service_daily_limit_warning(mocked_translation_service):
+    mocked_translation_service.return_value.translate.return_value = (
+        f"{MYMEMORY_WARNING}: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY"
     )
 
 
@@ -60,6 +72,17 @@ def translate_long_paragraph(count, length, language):
 
 
 @when(
+    parsers.parse(
+        'a sentence of {length:d} characters is translated to "{language}"'
+    ),
+    target_fixture="translated_text",
+)
+def translate_single_long_sentence(length, language):
+    sentence = " ".join(["word"] * (length // 5)) + "."
+    return ContentTranslator().translate(sentence, language)
+
+
+@when(
     parsers.parse('translating the text "{text}" to "{language}" fails'),
     target_fixture="translation_error",
 )
@@ -80,19 +103,19 @@ def check_paragraph_count(translated_text, expected_count):
 
 
 @then(parsers.parse('the translation service was asked for the language "{language}"'))
-def check_requested_language(mocked_google_translator, language):
-    assert mocked_google_translator.call_args.kwargs["target"] == language
+def check_requested_language(mocked_translation_service, language):
+    assert mocked_translation_service.call_args.kwargs["target"] == language
 
 
 @then(parsers.parse("the translation service received {expected_count:d} requests"))
-def check_request_count(mocked_google_translator, expected_count):
-    translate = mocked_google_translator.return_value.translate
+def check_request_count(mocked_translation_service, expected_count):
+    translate = mocked_translation_service.return_value.translate
     assert translate.call_count == expected_count
 
 
 @then("no request is longer than the allowed length")
-def check_request_length(mocked_google_translator):
-    calls = mocked_google_translator.return_value.translate.call_args_list
+def check_request_length(mocked_translation_service):
+    calls = mocked_translation_service.return_value.translate.call_args_list
     assert all(len(call.args[0]) <= MAX_CHUNK_LENGTH for call in calls)
 
 
