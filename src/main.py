@@ -111,6 +111,7 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
+        
         original_text = "\n\n".join(article.paragraphs)
         enriched_text = self._enricher.enrich_content(article.title, original_text)
         print("\n--- Contenido Enriquecido por IA ---\n")
