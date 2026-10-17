@@ -69,7 +69,7 @@ Feature: Consult a topic from the terminal
     When the application runs
     Then the screen shows "[Error]: No se encontró ningún artículo"
 
-Scenario: Show the translation on screen
+  Scenario: Show the translation on screen
     Given the user types "Python"
     And the user types "en"
     And the user types "n"
@@ -89,10 +89,11 @@ Scenario: Show the translation on screen
     When the application runs
     Then the screen shows "[Error]: No se pudo traducir el contenido"
 
-Scenario: Show the summary when it is requested
+  Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And the user types "n"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
@@ -104,6 +105,7 @@ Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And the user types "s"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
@@ -116,6 +118,7 @@ Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And the user types "s"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
@@ -128,6 +131,7 @@ Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And the user types "tal"
     And the user types "n"
     And Wikipedia answers with the article "Python"
@@ -139,6 +143,7 @@ Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And Wikipedia answers with the article "Python"
     And the summary cannot be generated
     When the application runs
@@ -148,16 +153,17 @@ Scenario: Show the summary when it is requested
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And Wikipedia answers with the article "Python"
     And Gemini is not available
     When the application runs
     Then the screen shows "Por favor, inténtelo más tarde."
 
-
   Scenario: Show a message when the article has no content
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     And Wikipedia answers with an empty article titled "Python"
     When the application runs
     Then the screen shows "No hay contenido suficiente para generar el resumen."

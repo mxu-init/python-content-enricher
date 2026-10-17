@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from src.exporter import ExportError
+from src.exporters import ExportError
 from src.main import CliInput, CliOutput, ContentEnricherApp
 from src.scraper import ScraperError, WikipediaArticle
 from src.translator import TranslationError
@@ -83,6 +83,8 @@ def mocked_translator():
     with patch("src.main.ContentTranslator") as translator_class:
         translator_class.return_value.translate.return_value = "Translated content."
         yield translator_class.return_value
+
+
 @pytest.fixture
 def mocked_summarizer():
     with patch("src.main.ArticleSummarizer") as summarizer_class:
@@ -90,8 +92,8 @@ def mocked_summarizer():
 
 
 @pytest.fixture
-def mocked_summary_exporter():
-    with patch("src.main.SummaryTextExporter") as exporter_class:
+def mocked_txt_exporter():
+    with patch("src.main.TxtExporter") as exporter_class:
         yield exporter_class.return_value
 
 
@@ -125,13 +127,13 @@ def summary_generated_successfully(mocked_summarizer):
 
 
 @given("the summary is saved successfully")
-def summary_saved_successfully(mocked_summary_exporter):
-    mocked_summary_exporter.export.return_value = Path("output/python_summary.txt")
+def summary_saved_successfully(mocked_txt_exporter):
+    mocked_txt_exporter.export_summary.return_value = Path("output/python_summary.txt")
 
 
 @given("the export always fails")
-def export_always_fails(mocked_summary_exporter):
-    mocked_summary_exporter.export.side_effect = ExportError(
+def export_always_fails(mocked_txt_exporter):
+    mocked_txt_exporter.export_summary.side_effect = ExportError(
         "No se pudo guardar el resumen."
     )
 

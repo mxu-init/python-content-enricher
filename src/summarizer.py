@@ -45,13 +45,19 @@ class ArticleSummary:
 
 
 class ArticleSummarizer:
-    def summarize(self, article: WikipediaArticle) -> ArticleSummary:
+    def summarize(self, content_or_article: WikipediaArticle | str, title: str = "") -> ArticleSummary:
         api_key = self._read_api_key()
-        prompt = self._build_prompt(article)
+        if isinstance(content_or_article, WikipediaArticle):
+            summary_title = content_or_article.title
+            content = "\n\n".join(content_or_article.paragraphs)
+        else:
+            summary_title = title or "article"
+            content = content_or_article
+        prompt = SUMMARY_PROMPT_TEMPLATE.format(title=summary_title, content=content)
         text = self._request_summary(api_key, prompt)
         if not text:
             raise SummaryGenerationError(INVALID_RESPONSE_MESSAGE)
-        return ArticleSummary(title=article.title, text=text)
+        return ArticleSummary(title=summary_title, text=text)
 
     def _read_api_key(self) -> str:
         api_key = os.environ.get(GEMINI_API_KEY_VARIABLE, "").strip()

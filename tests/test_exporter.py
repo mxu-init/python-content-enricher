@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-import src.exporter as exporter_module
-from src.exporter import ExportError, SummaryTextExporter
+import src.exporters as exporter_module
+from src.exporters import ExportError, TxtExporter
 from src.summarizer import ArticleSummary
 
 scenarios("features/exporter.feature")
@@ -31,7 +31,7 @@ def summary_with_text(title, text):
 
 @when("the summary is exported", target_fixture="exported_file")
 def export_summary(summary, output_directory):
-    return SummaryTextExporter().export(summary)
+    return TxtExporter().export_summary(summary)
 
 
 @then(parsers.parse('a text file "{expected_name}" is created'))
@@ -52,9 +52,9 @@ def export_fails(summary, monkeypatch):
     def raise_os_error(self, file_path, summary):
         raise OSError("Bloqueado por el sistema de archivos.")
 
-    monkeypatch.setattr(SummaryTextExporter, "_write_file", raise_os_error)
+    monkeypatch.setattr(TxtExporter, "_write_file", raise_os_error)
     with pytest.raises(ExportError):
-        SummaryTextExporter().export(summary)
+        TxtExporter().export_summary(summary)
 
 
 @then("an export error is raised")
