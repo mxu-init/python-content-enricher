@@ -1,14 +1,22 @@
 from unittest.mock import patch
+from pathlib import Path
 
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from src.exporter import ExportError
 from src.main import CliInput, CliOutput, ContentEnricherApp
 from src.scraper import ScraperError, WikipediaArticle
 from src.translator import TranslationError
+from src.summarizer import (
+    ArticleSummary,
+    CONNECTION_ERROR_MESSAGE,
+    SummaryGenerationError,
+)
 
 scenarios("features/main.feature")
 pytestmark = pytest.mark.usefixtures("capsys")
+
 
 @pytest.fixture
 def typed_answers():
@@ -56,6 +64,7 @@ def check_screen(capsys, screen_output, expected_text):
     screen_output["text"] += capsys.readouterr().out
     assert expected_text in screen_output["text"]
 
+
 @pytest.fixture
 def mocked_scraper():
     with patch("src.main.WikipediaScraper") as scraper_class:
@@ -74,6 +83,16 @@ def mocked_translator():
     with patch("src.main.ContentTranslator") as translator_class:
         translator_class.return_value.translate.return_value = "Translated content."
         yield translator_class.return_value
+@pytest.fixture
+def mocked_summarizer():
+    with patch("src.main.ArticleSummarizer") as summarizer_class:
+        yield summarizer_class.return_value
+
+
+@pytest.fixture
+def mocked_summary_exporter():
+    with patch("src.main.SummaryTextExporter") as exporter_class:
+        yield exporter_class.return_value
 
 
 @given(
@@ -90,6 +109,44 @@ def article_with_paragraphs(title, first, second):
 def wikipedia_answers(mocked_scraper, title):
     mocked_scraper.search.return_value = WikipediaArticle(
         title=title, paragraphs=["Some content."]
+    )
+
+
+@given(parsers.parse('Wikipedia answers with an empty article titled "{title}"'))
+def wikipedia_answers_empty(mocked_scraper, title):
+    mocked_scraper.search.return_value = WikipediaArticle(title=title, paragraphs=[])
+
+
+@given("the summary is generated successfully")
+def summary_generated_successfully(mocked_summarizer):
+    mocked_summarizer.summarize.return_value = ArticleSummary(
+        title="Python", text="Resumen de prueba."
+    )
+
+
+@given("the summary is saved successfully")
+def summary_saved_successfully(mocked_summary_exporter):
+    mocked_summary_exporter.export.return_value = Path("output/python_summary.txt")
+
+
+@given("the export always fails")
+def export_always_fails(mocked_summary_exporter):
+    mocked_summary_exporter.export.side_effect = ExportError(
+        "No se pudo guardar el resumen."
+    )
+
+
+@given("the summary cannot be generated")
+def summary_cannot_be_generated(mocked_summarizer):
+    mocked_summarizer.summarize.side_effect = SummaryGenerationError(
+        "No se pudo generar el resumen."
+    )
+
+
+@given("Gemini is not available")
+def gemini_not_available(mocked_summarizer):
+    mocked_summarizer.summarize.side_effect = SummaryGenerationError(
+        CONNECTION_ERROR_MESSAGE
     )
 
 

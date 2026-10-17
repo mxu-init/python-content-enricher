@@ -45,6 +45,9 @@ MANIFEST
 htmlcov/
 .pytest_cache/
 
+# Resúmenes generados
+output/*.txt
+
 # IDEs y editores
 .vscode/
 .idea/

@@ -5,10 +5,14 @@ from src.enricher import GeminiContentEnricher
 from src.exporters import TxtExporter, PdfExporter
 from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 from src.translator import ContentTranslator, TranslationError
+from pathlib import Path
+from src.exporter import ExportError, SummaryTextExporter
+from src.summarizer import ArticleSummarizer, ArticleSummary, SummaryGenerationError
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
 NO_ANSWER = "n"
+EMPTY_SUMMARY_MESSAGE = "No hay contenido suficiente para generar el resumen."
 
 
 @dataclass
@@ -49,7 +53,14 @@ class CliInput:
 
     def _ask_summary(self) -> bool:
         while True:
-            answer = input("¿Quieres un resumen aparte? (s/n): ").strip().lower()
+            answer = input("¿Quieres ver el resumen del tema? (s/n): ").strip().lower()
+            if answer in (YES_ANSWER, NO_ANSWER):
+                return answer == YES_ANSWER
+            print("Responde con 's' o 'n'.")
+
+    def ask_export(self) -> bool:
+        while True:
+            answer = input("¿Quieres guardar el resumen en un archivo? (s/n): ").strip().lower()
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
@@ -96,6 +107,13 @@ class CliOutput:
     def show_error(self, message: str) -> None:
         print(f"[Error]: {message}")
 
+    def show_summary(self, summary: ArticleSummary) -> None:
+        print(f"\nResumen: {summary.title}\n")
+        print(summary.text)
+
+    def show_summary_saved(self, file_path: Path) -> None:
+        print(f"Resumen guardado en: {file_path}")
+
 
 class ContentEnricherApp:
     def __init__(self) -> None:
@@ -107,6 +125,9 @@ class ContentEnricherApp:
         self._translator = ContentTranslator()
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
+        self._summarizer = ArticleSummarizer()
+        self._summary_exporter = SummaryTextExporter()
+        
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
