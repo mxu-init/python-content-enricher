@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +10,21 @@ from src.scraper import WikipediaArticle
 GEMINI_API_KEY_VARIABLE = "GEMINI_API_KEY"
 GEMINI_MODEL = "gemini-3-flash-preview"
 GEMINI_TIMEOUT_SECONDS = 30
+MIN_CHARACTERS_TO_SUMMARIZE = 600
+MAX_SENTENCES_ALREADY_CONDENSED = 9
+SENTENCE_BOUNDARY_PATTERN = re.compile(r"(?<=[.!?])\s+")
+SUMMARY_ACCEPTED_REASON = (
+    "El texto tiene {characters} caracteres y {sentences} frases, "
+    "por lo que se resume."
+)
+TEXT_TOO_SHORT_REASON = (
+    "El texto tiene {characters} caracteres (mínimo para resumir: {minimum}), "
+    "por lo que se muestra íntegro."
+)
+TEXT_ALREADY_CONDENSED_REASON = (
+    "El texto tiene {sentences} frases y el resumen ocupa hasta {maximum}, "
+    "por lo que ya está condensado y se muestra íntegro."
+)
 ENV_FILE_NAME = ".env"
 ENV_FILE_DIRECTORY = Path(__file__).resolve().parent.parent
 SUMMARY_PROMPT_TEMPLATE = (
@@ -44,7 +60,42 @@ class ArticleSummary:
     text: str
 
 
+@dataclass
+class SummaryDecision:
+    should_summarize: bool
+    reason: str
+
+
 class ArticleSummarizer:
+    def decide_summary(self, article: WikipediaArticle) -> SummaryDecision:
+        text = " ".join(article.paragraphs)
+        characters = len(text)
+        sentences = self._count_sentences(text)
+        if characters < MIN_CHARACTERS_TO_SUMMARIZE:
+            return SummaryDecision(
+                should_summarize=False,
+                reason=TEXT_TOO_SHORT_REASON.format(
+                    characters=characters, minimum=MIN_CHARACTERS_TO_SUMMARIZE
+                ),
+            )
+        if sentences <= MAX_SENTENCES_ALREADY_CONDENSED:
+            return SummaryDecision(
+                should_summarize=False,
+                reason=TEXT_ALREADY_CONDENSED_REASON.format(
+                    sentences=sentences, maximum=MAX_SENTENCES_ALREADY_CONDENSED
+                ),
+            )
+        return SummaryDecision(
+            should_summarize=True,
+            reason=SUMMARY_ACCEPTED_REASON.format(
+                characters=characters, sentences=sentences
+            ),
+        )
+
+    def _count_sentences(self, text: str) -> int:
+        sentences = SENTENCE_BOUNDARY_PATTERN.split(text)
+        return len([sentence for sentence in sentences if sentence.strip()])
+
     def summarize(self, article: WikipediaArticle) -> ArticleSummary:
         api_key = self._read_api_key()
         prompt = self._build_prompt(article)

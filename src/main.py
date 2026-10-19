@@ -1,18 +1,31 @@
 from dataclasses import dataclass
 import logging
+from typing import Optional
 
 from src.enricher import GeminiContentEnricher
 from pathlib import Path
 
-from src.exporter import ExportError, SummaryTextExporter
+from src.exporter import (
+    EXPORT_FORMATS,
+    SUMMARY_KIND,
+    TOPIC_KIND,
+    ContentExporter,
+    ExportError,
+)
 from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
 from src.exporters import TxtExporter, PdfExporter
-from src.summarizer import ArticleSummarizer, ArticleSummary, SummaryGenerationError
+from src.summarizer import (
+    ArticleSummarizer,
+    ArticleSummary,
+    SummaryDecision,
+    SummaryGenerationError,
+)
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
 NO_ANSWER = "n"
 EMPTY_SUMMARY_MESSAGE = "No hay contenido suficiente para generar el resumen."
+EXPORT_SUBJECTS = {SUMMARY_KIND: "el resumen", TOPIC_KIND: "el tema investigado"}
 
 
 @dataclass
@@ -58,12 +71,20 @@ class CliInput:
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
 
-    def ask_export(self) -> bool:
+    def ask_export(self, subject: str = "el resumen") -> bool:
         while True:
-            answer = input("¿Quieres guardar el resumen en un archivo? (s/n): ").strip().lower()
+            answer = input(f"¿Quieres guardar {subject} en un archivo? (s/n): ").strip().lower()
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
+
+    def ask_export_format(self) -> str:
+        options = "/".join(EXPORT_FORMATS)
+        while True:
+            export_format = input(f"Formato del archivo ({options}): ").strip().lower()
+            if export_format in EXPORT_FORMATS:
+                return export_format
+            print(f"Formato no válido. Opciones: {options}.")
 
     def _ask_export(self) -> tuple[bool, str, str]:
         while True:
@@ -101,8 +122,14 @@ class CliOutput:
         print(f"\nResumen: {summary.title}\n")
         print(summary.text)
 
+    def show_summary_decision(self, decision: SummaryDecision) -> None:
+        print(f"\nDecisión de resumen: {decision.reason}")
+
     def show_summary_saved(self, file_path: Path) -> None:
         print(f"Resumen guardado en: {file_path}")
+
+    def show_topic_saved(self, file_path: Path) -> None:
+        print(f"Tema guardado en: {file_path}")
 
 
 class ContentEnricherApp:
@@ -115,7 +142,7 @@ class ContentEnricherApp:
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
         self._summarizer = ArticleSummarizer()
-        self._summary_exporter = SummaryTextExporter()
+        self._summary_exporter = ContentExporter()
         
 
     def run(self) -> None:
@@ -126,6 +153,8 @@ class ContentEnricherApp:
             self._cli_output.show_error(str(error))
             return
         self._cli_output.show_article(article)
+        if request.wants_summary:
+            self._handle_summary(article)
         original_text = "\n".join(article.paragraphs)
         enriched_text = self._enricher.enrich_content(article.title, original_text)
         print("\n--- Contenido Enriquecido por IA ---\n")
@@ -144,6 +173,41 @@ class ContentEnricherApp:
                 print(f"¡Archivo exportado con éxito como '{request.filename}'!")
             except Exception as e:
                 print(f"Error al exportar: {e}")
+
+    def _handle_summary(self, article: WikipediaArticle) -> None:
+        if not article.paragraphs:
+            self._cli_output.show_error(EMPTY_SUMMARY_MESSAGE)
+            return
+        decision = self._summarizer.decide_summary(article)
+        self._cli_output.show_summary_decision(decision)
+        if not decision.should_summarize:
+            self._save_topic(article)
+            return
+        try:
+            summary = self._summarizer.summarize(article)
+        except SummaryGenerationError as error:
+            self._cli_output.show_error(str(error))
+            return
+        self._cli_output.show_summary(summary)
+        file_path = self._export_content(summary.title, summary.text, SUMMARY_KIND)
+        if file_path:
+            self._cli_output.show_summary_saved(file_path)
+
+    def _save_topic(self, article: WikipediaArticle) -> None:
+        topic_text = "\n\n".join(article.paragraphs)
+        file_path = self._export_content(article.title, topic_text, TOPIC_KIND)
+        if file_path:
+            self._cli_output.show_topic_saved(file_path)
+
+    def _export_content(self, title: str, text: str, content_kind: str) -> Optional[Path]:
+        if not self._cli_input.ask_export(EXPORT_SUBJECTS[content_kind]):
+            return None
+        export_format = self._cli_input.ask_export_format()
+        try:
+            return self._summary_exporter.export_content(title, text, export_format, content_kind)
+        except ExportError as error:
+            self._cli_output.show_error(str(error))
+            return None
 
 
 if __name__ == "__main__": # pragma: no cover
