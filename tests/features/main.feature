@@ -94,7 +94,6 @@ Feature: Consult a topic from the terminal
     And the user types "en"
     And the user types "s"
     And the user types "n"
-    And the user types "n"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
     When the application runs
@@ -105,8 +104,9 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
-    And the user types "n"
     And the user types "s"
+    And the user types "python"
+    And the user types "txt"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
     And the summary is saved successfully
@@ -118,8 +118,9 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
-    And the user types "n"
     And the user types "s"
+    And the user types "python"
+    And the user types "txt"
     And Wikipedia answers with the article "Python"
     And the summary is generated successfully
     And the export always fails
@@ -131,7 +132,6 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
-    And the user types "n"
     And the user types "tal"
     And the user types "n"
     And Wikipedia answers with the article "Python"

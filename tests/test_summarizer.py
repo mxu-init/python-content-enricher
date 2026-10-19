@@ -105,3 +105,26 @@ def check_summary_text(summary, expected_text):
 @then(parsers.parse('the summary error message is "{expected_message}"'))
 def check_summary_error(error_info, expected_message):
     assert str(error_info) == expected_message
+
+
+def test_summarize_with_raw_string_and_custom_title(monkeypatch, mocked_client):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    mocked_client.interactions.create.return_value.output_text = "Resumen de texto."
+    summary = ArticleSummarizer().summarize("Texto de prueba", "Título personalizado")
+    assert summary.title == "Título personalizado"
+    assert summary.text == "Resumen de texto."
+
+
+def test_summarize_with_raw_string_and_default_title(monkeypatch, mocked_client):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    mocked_client.interactions.create.return_value.output_text = "Resumen de texto."
+    summary = ArticleSummarizer().summarize("Texto de prueba")
+    assert summary.title == "article"
+    assert summary.text == "Resumen de texto."
+
+
+def test_build_prompt_method():
+    article = WikipediaArticle(title="Python", paragraphs=["Para 1", "Para 2"])
+    prompt = ArticleSummarizer()._build_prompt(article)
+    assert "Python" in prompt
+    assert "Para 1\n\nPara 2" in prompt

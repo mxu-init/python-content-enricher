@@ -5,7 +5,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from src.exporters import ExportError
-from src.main import CliInput, CliOutput, ContentEnricherApp
+from src.main import CliInput, CliOutput, ContentEnricherApp, UserRequest
 from src.scraper import ScraperError, WikipediaArticle
 from src.translator import TranslationError
 from src.summarizer import (
@@ -97,6 +97,12 @@ def mocked_txt_exporter():
         yield exporter_class.return_value
 
 
+@pytest.fixture
+def mocked_pdf_exporter():
+    with patch("src.main.PdfExporter") as exporter_class:
+        yield exporter_class.return_value
+
+
 @given(
     parsers.parse(
         'an article titled "{title}" with the paragraphs "{first}" and "{second}"'
@@ -181,3 +187,76 @@ def translation_fails(mocked_translator, message):
 @then(parsers.parse('the translator was asked for the language "{language}"'))
 def check_translator_language(mocked_translator, language):
     assert mocked_translator.translate.call_args.args[1] == language
+
+
+def test_ask_export_options():
+    cli_input = CliInput()
+    with patch("builtins.input", side_effect=["quizas", "s", "", "mi_archivo", "invalid", "txt"]):
+        wants, filename, fmt = cli_input._ask_export()
+        assert wants is True
+        assert filename == "mi_archivo"
+        assert fmt == "txt"
+
+    with patch("builtins.input", side_effect=["s", "archivo_pdf", "pdf"]):
+        wants, filename, fmt = cli_input._ask_export()
+        assert wants is True
+        assert filename == "archivo_pdf"
+        assert fmt == "pdf"
+
+
+def test_run_with_full_article_export_txt(mocked_scraper, mocked_enricher, mocked_translator, mocked_txt_exporter):
+    mocked_scraper.search.return_value = WikipediaArticle(title="Python", paragraphs=["Contenido"])
+    mocked_enricher.enrich_content.return_value = "Enriquecido"
+    mocked_translator.translate.return_value = "Traducido"
+    mocked_txt_exporter.export.return_value = Path("output/mi_archivo.txt")
+
+    app = ContentEnricherApp()
+    with patch.object(app._cli_input, "ask_request", return_value=UserRequest("Python", "en", False, True, "mi_archivo", "txt")):
+        app.run()
+    mocked_txt_exporter.export.assert_called_once()
+
+
+def test_run_with_full_article_export_pdf(mocked_scraper, mocked_enricher, mocked_translator, mocked_pdf_exporter):
+    mocked_scraper.search.return_value = WikipediaArticle(title="Python", paragraphs=["Contenido"])
+    mocked_enricher.enrich_content.return_value = "Enriquecido"
+    mocked_translator.translate.return_value = "Traducido"
+    mocked_pdf_exporter.export.return_value = Path("output/mi_archivo.pdf")
+
+    app = ContentEnricherApp()
+    with patch.object(app._cli_input, "ask_request", return_value=UserRequest("Python", "en", False, True, "mi_archivo", "pdf")):
+        app.run()
+    mocked_pdf_exporter.export.assert_called_once()
+
+
+def test_run_with_full_article_export_error(mocked_scraper, mocked_enricher, mocked_translator, mocked_txt_exporter, capsys):
+    mocked_scraper.search.return_value = WikipediaArticle(title="Python", paragraphs=["Contenido"])
+    mocked_enricher.enrich_content.return_value = "Enriquecido"
+    mocked_translator.translate.return_value = "Traducido"
+    mocked_txt_exporter.export.side_effect = RuntimeError("Error de disco")
+
+    app = ContentEnricherApp()
+    with patch.object(app._cli_input, "ask_request", return_value=UserRequest("Python", "en", False, True, "mi_archivo", "txt")):
+        app.run()
+    captured = capsys.readouterr().out
+    assert "Error al exportar: Error de disco" in captured
+
+
+def test_run_with_summary_export_pdf(mocked_scraper, mocked_enricher, mocked_translator, mocked_summarizer, mocked_pdf_exporter):
+    mocked_scraper.search.return_value = WikipediaArticle(title="Python", paragraphs=["Contenido"])
+    mocked_enricher.enrich_content.return_value = "Enriquecido"
+    mocked_translator.translate.return_value = "Traducido"
+    mocked_summarizer.summarize.return_value = ArticleSummary(title="Python", text="Resumen")
+    mocked_pdf_exporter.export_summary.return_value = Path("output/resumen.pdf")
+
+    app = ContentEnricherApp()
+    with patch.object(app._cli_input, "ask_request", return_value=UserRequest("Python", "en", True, True, "mi_archivo", "pdf")):
+        app.run()
+    mocked_pdf_exporter.export_summary.assert_called_once()
+
+
+def test_cli_input_ask_export():
+    cli_input = CliInput()
+    with patch("builtins.input", side_effect=["s"]):
+        assert cli_input.ask_export() is True
+    with patch("builtins.input", side_effect=["invalid", "n"]):
+        assert cli_input.ask_export() is False
