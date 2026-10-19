@@ -7,6 +7,7 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "s"
+    And the user types "n"
     When the request is asked
     Then the request topic is "Python"
     And the request language is "en"
@@ -17,6 +18,7 @@ Feature: Consult a topic from the terminal
     And the user types "Python"
     And the user types "en"
     And the user types "n"
+    And the user types "n"
     When the request is asked
     Then the screen shows "El tema no puede estar vacío."
     And the request topic is "Python"
@@ -26,6 +28,7 @@ Feature: Consult a topic from the terminal
     And the user types "xx"
     And the user types "fr"
     And the user types "n"
+    And the user types "n"
     When the request is asked
     Then the screen shows "Idioma no válido"
     And the request language is "fr"
@@ -34,6 +37,7 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "tal"
+    And the user types "n"
     And the user types "n"
     When the request is asked
     Then the screen shows "Responde con 's' o 'n'."
@@ -50,6 +54,7 @@ Feature: Consult a topic from the terminal
     Given the user types "Python"
     And the user types "en"
     And the user types "n"
+    And the user types "n"
     And Wikipedia answers with the article "Python"
     When the application runs
     Then Wikipedia was searched for "Python"
@@ -59,6 +64,27 @@ Feature: Consult a topic from the terminal
     Given the user types "Tema inexistente"
     And the user types "en"
     And the user types "n"
+    And the user types "n"
     And the search fails with the message "No se encontró ningún artículo"
     When the application runs
     Then the screen shows "[Error]: No se encontró ningún artículo"
+
+  Scenario: Show the translation on screen
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "n"
+    And the user types "n"
+    And Wikipedia answers with the article "Python"
+    When the application runs
+    Then the screen shows "Translated content."
+    And the translator was asked for the language "en"
+
+  Scenario: Show an error when the translation fails
+    Given the user types "Python"
+    And the user types "en"
+    And the user types "n"
+    And the user types "n"
+    And Wikipedia answers with the article "Python"
+    And the translation fails with the message "No se pudo traducir el contenido"
+    When the application runs
+    Then the screen shows "[Error]: No se pudo traducir el contenido"
