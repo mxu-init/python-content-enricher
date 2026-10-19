@@ -121,7 +121,7 @@ class ContentEnricherApp:
         self._cli_output = CliOutput()
         self._scraper = WikipediaScraper()
         self._enricher = GeminiContentEnricher(self._logger)
-        self._translator = ContentTranslator()
+        self._translator = ContentTranslator(email="hernnandezfercho@gmail.com")
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
         self._summarizer = ArticleSummarizer()
