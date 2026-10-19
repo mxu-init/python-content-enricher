@@ -6,14 +6,14 @@
 
 ## 📖 Descripción del Proyecto
 
-**Content Enricher** es una solución modular de procesamiento de lenguaje y contenidos que toma textos o fuentes de información en bruto, los enriquece, extrae sus puntos clave, genera resúmenes optimizados y exporta los resultados enriquecidos y resumidos a múltiples formatos para su integración en pipelines de datos, dashboards o aplicaciones downstream.
+**Content Enricher** es una solución modular de procesamiento de lenguaje y contenidos que toma textos o fuentes de información en bruto, los enriquece, extrae sus puntos clave, genera resúmenes optimizados y exporta los resultados enriquecidos y resumidos a múltiples formatos para su investigación y fácil acceso a la información relevante.
 
 ### ✨ Funcionalidades Principales
 - 🌐 **Scraping de Contenido (`Scraper`):** Búsqueda y extracción de artículos de Wikipedia con limpieza de etiquetas HTML, filtros de párrafos y manejo de errores de conexión.
 - 🤖 **Enriquecimiento con IA (`Enricher`):** Enriquecimiento de contenido mediante la API de Google Gemini con gestión de reintentos, políticas de fallback y logs estructurados.
 - 🌍 **Traducción Multilingüe (`Translator`):** Traducción del contenido a idiomas soportados (`en`, `fr`, `de`, `it`, `pt`) con división inteligente en fragmentos (*chunks*).
 - ⚡ **Resumen Inteligente (`Summarizer`):** Generación de resúmenes ejecutivos del contenido enriquecido utilizando modelos generativos de Gemini.
-- 📤 **Exportación Multiformato (`Exporters`):** Generación y guardado de documentos completos y resúmenes en formatos `.txt` y `.pdf` (vía ReportLab) organizados en `output/`.
+- 📤 **Exportación Multiformato (`Exporters`):** Generación y guardado de documentos completos y resúmenes en formatos `.txt` y `.pdf` (vía ReportLab) organizados en la ruta `output/`.
 - 💻 **Interfaz de Línea de Comandos (CLI):** Flujo interactivo en terminal (`main.py`) con validación de entradas de usuario y presentación formateada.
 - 🛡️ **Diseño Robusto y Tolerancia a Fallos:** Manejo controlado de entradas vacías, límites de peticiones, errores de red y excepciones de I/O.
 
@@ -149,28 +149,6 @@ pytest --cov=src --cov-report=term-missing
 pytest --cov=src --cov-report=html
 ```
 *Abre `htmlcov/index.html` en tu navegador para inspeccionar línea a línea la cobertura de cada archivo.*
-
-### Ejecutar Pruebas BDD
-```bash
-pytest tests/features/
-# O si utilizas behave:
-behave tests/features/
-```
-
----
-
-## 🚀 Uso del Pipeline
-
-Ejecuta el script principal indicando el contenido o archivo a procesar:
-
-```bash
-python -m src.main --input "ruta/al/documento.txt" --format json --output "resultado.json"
-```
-
-O consultar las opciones de ayuda de la interfaz por consola:
-```bash
-python -m src.main --help
-```
 
 ---
 
