@@ -1,14 +1,17 @@
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 
 from src.enricher import GeminiContentEnricher
-from src.exporters import TxtExporter, PdfExporter
+from src.exporters import ExportError, PdfExporter, TxtExporter
 from src.scraper import ScraperError, WikipediaArticle, WikipediaScraper
+from src.summarizer import ArticleSummarizer, ArticleSummary, SummaryGenerationError
 from src.translator import ContentTranslator, TranslationError
 
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "it", "pt")
 YES_ANSWER = "s"
 NO_ANSWER = "n"
+EMPTY_SUMMARY_MESSAGE = "No hay contenido suficiente para generar el resumen."
 
 
 @dataclass
@@ -49,7 +52,14 @@ class CliInput:
 
     def _ask_summary(self) -> bool:
         while True:
-            answer = input("¿Quieres un resumen aparte? (s/n): ").strip().lower()
+            answer = input("¿Quieres ver el resumen del tema? (s/n): ").strip().lower()
+            if answer in (YES_ANSWER, NO_ANSWER):
+                return answer == YES_ANSWER
+            print("Responde con 's' o 'n'.")
+
+    def ask_export(self) -> bool:
+        while True:
+            answer = input("¿Quieres guardar el resumen en un archivo? (s/n): ").strip().lower()
             if answer in (YES_ANSWER, NO_ANSWER):
                 return answer == YES_ANSWER
             print("Responde con 's' o 'n'.")
@@ -96,6 +106,13 @@ class CliOutput:
     def show_error(self, message: str) -> None:
         print(f"[Error]: {message}")
 
+    def show_summary(self, summary: ArticleSummary) -> None:
+        print(f"\nResumen: {summary.title}\n")
+        print(summary.text)
+
+    def show_summary_saved(self, file_path: Path) -> None:
+        print(f"Resumen guardado en: {file_path}")
+
 
 class ContentEnricherApp:
     def __init__(self) -> None:
@@ -107,6 +124,7 @@ class ContentEnricherApp:
         self._translator = ContentTranslator()
         self._txt_exporter = TxtExporter()
         self._pdf_exporter = PdfExporter()
+        self._summarizer = ArticleSummarizer()
 
     def run(self) -> None:
         request = self._cli_input.ask_request()
@@ -128,15 +146,37 @@ class ContentEnricherApp:
             return
         self._cli_output.show_translation(translated_text, request.language)
 
+        summary = None
+        if request.wants_summary:
+            if not article.paragraphs:
+                self._cli_output.show_error(EMPTY_SUMMARY_MESSAGE)
+                return
+            try:
+                summary = self._summarizer.summarize(enriched_text, article.title)
+            except SummaryGenerationError as error:
+                self._cli_output.show_error(str(error))
+                return
+            self._cli_output.show_summary(summary)
+
         if request.wants_export:
             try:
                 if request.export_format == "txt":
-                    self._txt_exporter.export(request.filename, original_text, enriched_text, translated_text)
+                    file_path = self._txt_exporter.export(request.filename, original_text, enriched_text, translated_text)
                 elif request.export_format == "pdf":
-                    self._pdf_exporter.export(request.filename, original_text, enriched_text, translated_text)
-                print(f"¡Archivo exportado con éxito como '{request.filename}'!")
+                    file_path = self._pdf_exporter.export(request.filename, original_text, enriched_text, translated_text)
+                print(f"¡Archivo exportado con éxito en '{file_path}'!")
             except Exception as e:
                 print(f"Error al exportar: {e}")
+
+            if summary:
+                try:
+                    if request.export_format == "pdf":
+                        summary_file_path = self._pdf_exporter.export_summary(summary)
+                    else:
+                        summary_file_path = self._txt_exporter.export_summary(summary)
+                    self._cli_output.show_summary_saved(summary_file_path)
+                except ExportError as error:
+                    self._cli_output.show_error(str(error))
 
 
 if __name__ == "__main__": # pragma: no cover
