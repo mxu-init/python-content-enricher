@@ -9,11 +9,13 @@
 **Content Enricher** es una solución modular de procesamiento de lenguaje y contenidos que toma textos o fuentes de información en bruto, los enriquece, extrae sus puntos clave, genera resúmenes optimizados y exporta los resultados enriquecidos y resumidos a múltiples formatos para su integración en pipelines de datos, dashboards o aplicaciones downstream.
 
 ### ✨ Funcionalidades Principales
-- 📝 **Extracción y Procesamiento de Texto:** Limpieza, tokenización y preprocesamiento de textos de entrada.
-- ⚡ **Resumen Inteligente (`Summarizer`):** Generación de resúmenes concisos, extracción de conceptos fundamentales y palabras clave.
-- 📤 **Exportación Multiformato (`Exporters`):** Serialización y guardado estructurado en múltiples formatos (PDF, markdown, txt.).
-- 💻 **Interfaz de Línea de Comandos (CLI):** Punto de entrada intuitivo (`main.py`) para procesamiento por lotes o archivos individuales.
-- 🛡️ **Diseño Robusto y Tolerancia a Fallos:** Manejo controlado de entradas inválidas, excepciones de codificación y fallos de I/O.
+- 🌐 **Scraping de Contenido (`Scraper`):** Búsqueda y extracción de artículos de Wikipedia con limpieza de etiquetas HTML, filtros de párrafos y manejo de errores de conexión.
+- 🤖 **Enriquecimiento con IA (`Enricher`):** Enriquecimiento de contenido mediante la API de Google Gemini con gestión de reintentos, políticas de fallback y logs estructurados.
+- 🌍 **Traducción Multilingüe (`Translator`):** Traducción del contenido a idiomas soportados (`en`, `fr`, `de`, `it`, `pt`) con división inteligente en fragmentos (*chunks*).
+- ⚡ **Resumen Inteligente (`Summarizer`):** Generación de resúmenes ejecutivos del contenido enriquecido utilizando modelos generativos de Gemini.
+- 📤 **Exportación Multiformato (`Exporters`):** Generación y guardado de documentos completos y resúmenes en formatos `.txt` y `.pdf` (vía ReportLab) organizados en `output/`.
+- 💻 **Interfaz de Línea de Comandos (CLI):** Flujo interactivo en terminal (`main.py`) con validación de entradas de usuario y presentación formateada.
+- 🛡️ **Diseño Robusto y Tolerancia a Fallos:** Manejo controlado de entradas vacías, límites de peticiones, errores de red y excepciones de I/O.
 
 ---
 
@@ -30,9 +32,9 @@ El núcleo de la confiabilidad de este proyecto radica en la adopción del ciclo
 ```
 
 ### 🎯 Estrategia Integral de Testing
-1. **Pruebas Unitarias Exhaustivas (`pytest`):** Cobertura componente por componente (`test_main.py`, `test_exporter.py`, etc.) aislando dependencias y probando casos límite (*edge cases*).
-2. **Pruebas de Aceptación / BDD (`main.feature`):** Escenarios en sintaxis Gherkin (*Given-When-Then*) para validar el comportamiento del sistema desde la perspectiva del usuario o consumidor final.
-3. **Métricas de Cobertura (`pytest-cov` / `coverage.py`):** Ejecución continua de análisis de cobertura orientado a alcanzar y mantener el **100% de cobertura** tanto en ramas (*branch coverage*) como en sentencias de código (*line coverage*).
+1. **Pruebas Unitarias Exhaustivas (`pytest`):** Cobertura componente por componente (`test_scraper.py`, `test_enricher.py`, `test_translator.py`, `test_summarizer.py`, `test_exporter.py`, `test_main.py`).
+2. **Pruebas de Aceptación / BDD (`tests/features/*.feature`):** Especificaciones en sintaxis Gherkin (*Given-When-Then*) con escenarios ejecutables para cada módulo.
+3. **Métricas de Cobertura (`pytest-cov` / `coverage.py`):** Ejecución continua garantizando el **100% de cobertura** de código en todos los componentes del `src/`.
 
 ---
 
@@ -41,48 +43,54 @@ El núcleo de la confiabilidad de este proyecto radica en la adopción del ciclo
 | Categoría | Tecnologías y Herramientas |
 | :--- | :--- |
 | **Backend & Core** | ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Standard Library](https://img.shields.io/badge/Standard_Library-Python-yellow?style=for-the-badge) |
-| **Testing & Calidad** | ![Pytest](https://img.shields.io/badge/pytest-%230A9EDC.svg?style=for-the-badge&logo=pytest&logoColor=white) ![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen?style=for-the-badge) ![BDD](https://img.shields.io/badge/BDD-Gherkin-00A86B?style=for-the-badge) ![Flake8](https://img.shields.io/badge/Flake8-Linter-4B3263?style=for-the-badge) |
+| **IA & Procesamiento** | ![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75C2?style=for-the-badge&logo=google&logoColor=white) ![Deep Translator](https://img.shields.io/badge/Deep_Translator-2C3E50?style=for-the-badge) ![BeautifulSoup](https://img.shields.io/badge/BeautifulSoup-59666C?style=for-the-badge) ![ReportLab](https://img.shields.io/badge/ReportLab-PDF-red?style=for-the-badge) |
+| **Testing & Calidad** | ![Pytest](https://img.shields.io/badge/pytest-%230A9EDC.svg?style=for-the-badge&logo=pytest&logoColor=white) ![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen?style=for-the-badge) ![BDD](https://img.shields.io/badge/BDD-Gherkin-00A86B?style=for-the-badge) |
 | **Metodología** | ![TDD](https://img.shields.io/badge/Metodología-TDD_Test--Driven-red?style=for-the-badge) ![Clean Code](https://img.shields.io/badge/Design-Clean_Code-blue?style=for-the-badge) |
-| **Control de Versiones** | ![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) |
-
-<br />
-
-| Tecnología / Herramienta | Rol en el Proyecto |
-| :--- | :--- |
-| **[Python 3.10+](https://www.python.org/)** | Lenguaje de programación principal, utilizando tipado estático opcional (`typing`) para mayor solidez. |
-| **[Pytest](https://docs.pytest.org/)** | Framework de pruebas unitarias ágil, parametrizado y extensible. |
-| **[pytest-cov](https://pytest-cov.readthedocs.io/)** | Motor de medición de cobertura de pruebas integrado en el ciclo de desarrollo. |
-| **Behave / Pytest-BDD** | Ejecución de especificaciones ejecutables basadas en historias de usuario (`.feature`). |
-| **Exporters & Summarizer Modules** | Arquitectura modular desacoplada para análisis y exportación de datos. |
 
 ---
 
 ## 🧩 Arquitectura del Proyecto
 
-El código está estructurado bajo principios de responsabilidad única (SRP) y alta cohesión:
+El código está estructurado bajo principios de responsabilidad única (SRP), desacoplamiento y alta cohesión:
 
 ```text
 content_enricher/
 ├── src/
 │   ├── __init__.py
-│   ├── main.py                # Punto de entrada de ejecución y orquestación
-│   ├── summarizer.py          # Lógica de enriquecimiento y resumen textual
-│   └── exporters.py           # Adaptadores de exportación a múltiples formatos
+│   ├── scraper.py             # Búsqueda y extracción de contenido en Wikipedia
+│   ├── enricher.py            # Enriquecimiento contextual mediante Google Gemini IA
+│   ├── translator.py          # Traducción de contenido multilingüe por fragmentos
+│   ├── summarizer.py          # Generación de resúmenes estructurados con Gemini
+│   ├── exporters.py           # Exportadores a TXT y PDF (ReportLab) hacia output/
+│   └── main.py                # Interfaz CLI interactiva y orquestación del pipeline
 ├── tests/
 │   ├── __init__.py
-│   ├── test_main.py           # Tests unitarios del módulo principal y CLI
-│   ├── test_exporter.py       # Tests unitarios para serialización y guardado
-│   └── features/
-│       └── main.feature       # Especificaciones de comportamiento en lenguaje Gherkin
-├── requirements.txt           # Dependencias de producción y desarrollo
-├── setup.cfg / pyproject.toml # Configuración de herramientas (pytest, coverage, flake8)
+│   ├── test_scraper.py        # Tests unitarios del scraper de Wikipedia
+│   ├── test_enricher.py       # Tests unitarios del enriquecedor con Gemini
+│   ├── test_translator.py     # Tests unitarios del traductor multilingüe
+│   ├── test_summarizer.py     # Tests unitarios del generador de resúmenes
+│   ├── test_exporter.py       # Tests unitarios de los exportadores TXT y PDF
+│   ├── test_main.py           # Tests unitarios del flujo CLI y de integración
+│   └── features/              # Especificaciones ejecutables BDD (Gherkin)
+│       ├── scraper.feature
+│       ├── enricher.feature
+│       ├── translator.feature
+│       ├── summarizer.feature
+│       ├── exporter.feature
+│       └── main.feature
+├── output/                    # Carpeta de destino para archivos exportados (.txt, .pdf)
+├── requirements.txt           # Dependencias de producción y testing
+├── pytest.ini                 # Configuración de pytest y cobertura
 └── README.md                  # Documentación del proyecto
 ```
 
 ### Flujo de Datos
-1. **Entrada:** `main.py` recibe el contenido fuente (vía archivo o argumento).
-2. **Enriquecimiento:** `summarizer.py` analiza el corpus, selecciona los puntos nodales y genera el resumen condensado.
-3. **Exportación:** `exporters.py` convierte los objetos procesados en la estructura requerida (JSON, Markdown, texto plano) y los almacena en el destino indicado.
+1. **Petición del Usuario:** En `main.py`, la interfaz CLI solicita el tema a investigar, el idioma de traducción, si desea resumen y si desea exportar los resultados.
+2. **Scraping:** `scraper.py` consulta Wikipedia, parsea el HTML y extrae los párrafos relevantes del artículo.
+3. **Enriquecimiento:** `enricher.py` envía el artículo a la API de Gemini para obtener contenido extendido y enriquecido contextualmente.
+4. **Traducción:** `translator.py` divide el contenido enriquecido en fragmentos y lo traduce al idioma solicitado.
+5. **Resumen (Opcional):** Si se solicita, `summarizer.py` sintetiza el contenido enriquecido con Gemini en tres párrafos.
+6. **Exportación (Opcional):** Si el usuario lo indicó, `exporters.py` guarda en `output/` el documento completo (original, enriquecido y traducido) y el resumen en archivos independientes (formato `.txt` o `.pdf`).
 
 ---
 
